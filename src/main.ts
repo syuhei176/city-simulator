@@ -3,6 +3,7 @@ import { GameConfig } from './core/types';
 import { Camera } from './renderer/Camera';
 import { MapRenderer } from './renderer/MapRenderer';
 import { NetworkRenderer } from './renderer/NetworkRenderer';
+import { VehicleRenderer } from './renderer/VehicleRenderer';
 import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
 import './style.css';
@@ -16,6 +17,7 @@ class CitySimulator {
   private camera!: Camera;
   private renderer!: MapRenderer;
   private networkRenderer!: NetworkRenderer;
+  private vehicleRenderer!: VehicleRenderer;
   private inputHandler!: InputHandler;
   private hud!: HUD;
 
@@ -60,6 +62,13 @@ class CitySimulator {
 
     // Create network renderer
     this.networkRenderer = new NetworkRenderer(
+      this.canvas,
+      this.camera,
+      this.config.cellSize
+    );
+
+    // Create vehicle renderer
+    this.vehicleRenderer = new VehicleRenderer(
       this.canvas,
       this.camera,
       this.config.cellSize
@@ -164,6 +173,18 @@ class CitySimulator {
           this.engine.rebuildNetwork();
           console.log('Network rebuilt manually');
           break;
+        case 'v':
+        case 'V':
+          // Toggle vehicles
+          this.vehicleRenderer.toggleVehicles();
+          console.log('Vehicles toggled');
+          break;
+        case 'h':
+        case 'H':
+          // Toggle traffic heatmap
+          this.renderer.toggleTrafficHeatmap();
+          console.log('Traffic heatmap toggled');
+          break;
       }
     });
   }
@@ -178,6 +199,10 @@ class CitySimulator {
 
       // Render network (if enabled)
       this.networkRenderer.render(this.engine.getRoadNetwork());
+
+      // Render vehicles (if enabled)
+      const vehicles = this.engine.getTrafficSimulator().getVehicles();
+      this.vehicleRenderer.render(vehicles);
 
       // Update HUD
       this.hud.update(this.engine);

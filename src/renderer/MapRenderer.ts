@@ -12,6 +12,9 @@ export class MapRenderer {
   private camera: Camera;
   private cellSize: number;
 
+  // Render options
+  private showTrafficHeatmap: boolean = false;
+
   // Colors
   private readonly colors = {
     empty: '#2d5016',
@@ -123,7 +126,7 @@ export class MapRenderer {
     }
 
     // Draw traffic density (if road)
-    if (cell.isRoad() && cell.trafficDensity > 0) {
+    if (cell.isRoad() && cell.trafficDensity > 0 && this.showTrafficHeatmap) {
       this.renderTrafficDensity(cell, x, y);
     }
   }
@@ -217,11 +220,39 @@ export class MapRenderer {
   }
 
   /**
-   * Render traffic density overlay
+   * Render traffic density overlay with color gradient
    */
   private renderTrafficDensity(cell: Cell, x: number, y: number): void {
-    const alpha = Math.min(cell.trafficDensity / 100, 1);
-    this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.5})`;
+    const density = cell.trafficDensity;
+    let color: string;
+
+    // Color gradient: green -> yellow -> orange -> red
+    if (density < 25) {
+      // Green to Yellow
+      const t = density / 25;
+      const r = Math.floor(255 * t);
+      const g = 255;
+      color = `rgba(${r}, ${g}, 0, 0.5)`;
+    } else if (density < 50) {
+      // Yellow to Orange
+      const t = (density - 25) / 25;
+      const r = 255;
+      const g = Math.floor(255 * (1 - t * 0.5));
+      color = `rgba(${r}, ${g}, 0, 0.5)`;
+    } else if (density < 75) {
+      // Orange to Red
+      const t = (density - 50) / 25;
+      const r = 255;
+      const g = Math.floor(128 * (1 - t));
+      color = `rgba(${r}, ${g}, 0, 0.6)`;
+    } else {
+      // Dark Red
+      const t = (density - 75) / 25;
+      const r = Math.floor(255 * (1 - t * 0.2));
+      color = `rgba(${r}, 0, 0, 0.7)`;
+    }
+
+    this.ctx.fillStyle = color;
     this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
   }
 
@@ -260,5 +291,26 @@ export class MapRenderer {
   resize(width: number, height: number): void {
     this.canvas.width = width;
     this.canvas.height = height;
+  }
+
+  /**
+   * Toggle traffic heatmap
+   */
+  toggleTrafficHeatmap(): void {
+    this.showTrafficHeatmap = !this.showTrafficHeatmap;
+  }
+
+  /**
+   * Set traffic heatmap visibility
+   */
+  setTrafficHeatmap(visible: boolean): void {
+    this.showTrafficHeatmap = visible;
+  }
+
+  /**
+   * Get heatmap visibility
+   */
+  isHeatmapVisible(): boolean {
+    return this.showTrafficHeatmap;
   }
 }

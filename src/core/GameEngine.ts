@@ -2,6 +2,8 @@ import { Grid } from './Grid';
 import { GameConfig } from './types';
 import { RoadNetwork } from '@/transport/RoadNetwork';
 import { PathFinding } from '@/transport/PathFinding';
+import { TrafficSimulator } from '@/transport/TrafficSimulator';
+import { TrafficAnalytics } from '@/transport/TrafficAnalytics';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -18,6 +20,8 @@ export class GameEngine {
   // Transport systems
   private roadNetwork: RoadNetwork;
   private pathFinding: PathFinding;
+  private trafficSimulator: TrafficSimulator;
+  private trafficAnalytics: TrafficAnalytics;
   private networkDirty: boolean = true;
   private networkRebuildInterval: number = 60; // Rebuild every 60 ticks
   private ticksSinceNetworkRebuild: number = 0;
@@ -36,6 +40,9 @@ export class GameEngine {
     buildingCount: 0,
     networkNodes: 0,
     networkEdges: 0,
+    vehicleCount: 0,
+    averageTrafficSpeed: 0,
+    trafficCongestion: 0,
   };
 
   constructor(config: GameConfig) {
@@ -46,6 +53,13 @@ export class GameEngine {
     // Initialize transport systems
     this.roadNetwork = new RoadNetwork(this.grid);
     this.pathFinding = new PathFinding(this.roadNetwork);
+    this.trafficSimulator = new TrafficSimulator(
+      this.grid,
+      this.roadNetwork,
+      this.pathFinding,
+      config.cellSize
+    );
+    this.trafficAnalytics = new TrafficAnalytics(this.grid, this.trafficSimulator);
   }
 
   /**
@@ -74,6 +88,20 @@ export class GameEngine {
    */
   getPathFinding(): PathFinding {
     return this.pathFinding;
+  }
+
+  /**
+   * Get traffic simulator
+   */
+  getTrafficSimulator(): TrafficSimulator {
+    return this.trafficSimulator;
+  }
+
+  /**
+   * Get traffic analytics
+   */
+  getTrafficAnalytics(): TrafficAnalytics {
+    return this.trafficAnalytics;
   }
 
   /**
@@ -153,6 +181,10 @@ export class GameEngine {
       this.rebuildNetwork();
     }
 
+    // Update traffic simulation
+    this.trafficSimulator.update();
+    this.trafficAnalytics.update();
+
     // Update game systems here
     this.updateStatistics();
 
@@ -181,6 +213,12 @@ export class GameEngine {
     const networkStats = this.roadNetwork.getStats();
     this.stats.networkNodes = networkStats.nodeCount;
     this.stats.networkEdges = networkStats.edgeCount;
+
+    // Traffic statistics
+    const trafficStats = this.trafficSimulator.getStats();
+    this.stats.vehicleCount = trafficStats.totalVehicles;
+    this.stats.averageTrafficSpeed = trafficStats.averageSpeed;
+    this.stats.trafficCongestion = trafficStats.averageCongestion;
   }
 
   /**

@@ -112,8 +112,12 @@ export class HUD {
     const speed = engine.getSpeed();
     const speedText = speed === 0 ? 'PAUSED' : `${speed}x`;
 
+    const congestionColor = stats.trafficCongestion > 75 ? '#ff0000' :
+                             stats.trafficCongestion > 50 ? '#ff8800' :
+                             stats.trafficCongestion > 25 ? '#ffff00' : '#00ff00';
+
     this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 2</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 3</div>
       <div>資金: $${stats.money.toLocaleString()}</div>
       <div>人口: ${stats.population.toLocaleString()}</div>
       <div>収入: $${stats.income.toLocaleString()}/月</div>
@@ -125,6 +129,12 @@ export class HUD {
         <div>ノード: ${stats.networkNodes}</div>
         <div>エッジ: ${stats.networkEdges}</div>
       </div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #ff0;">交通状況</div>
+        <div>車両数: ${stats.vehicleCount}</div>
+        <div>平均速度: ${stats.averageTrafficSpeed.toFixed(2)}</div>
+        <div>混雑度: <span style="color: ${congestionColor}">${Math.round(stats.trafficCongestion)}%</span></div>
+      </div>
       <div style="margin-top: 10px;">速度: ${speedText}</div>
       <div style="margin-top: 10px; font-size: 11px; color: #888;">
         [Space]: Pause/Resume<br>
@@ -135,6 +145,10 @@ export class HUD {
         [N]: Toggle Nodes<br>
         [E]: Toggle Edges<br>
         [B]: Rebuild Network
+        </span><br>
+        <span style="color: #ff0;">
+        [V]: Toggle Vehicles<br>
+        [H]: Traffic Heatmap
         </span>
       </div>
     `;
