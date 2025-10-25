@@ -1,0 +1,176 @@
+import { Grid } from './Grid';
+import { GameConfig } from './types';
+
+/**
+ * Main game engine that manages the game loop and simulation
+ */
+export class GameEngine {
+  private grid: Grid;
+  private config: GameConfig;
+  private running: boolean = false;
+  private lastTickTime: number = 0;
+  private tickAccumulator: number = 0;
+  private tickInterval: number;
+  private frameId: number | null = null;
+
+  // Game state
+  private gameTime: number = 0; // In-game time (in ticks)
+  private speed: number = 1; // 0 = paused, 1 = normal, 2 = fast, 4 = very fast
+
+  // Statistics
+  public stats = {
+    population: 0,
+    money: 100000, // Starting money
+    income: 0,
+    expenses: 0,
+    roadCount: 0,
+    buildingCount: 0,
+  };
+
+  constructor(config: GameConfig) {
+    this.config = config;
+    this.grid = new Grid(config.gridWidth, config.gridHeight);
+    this.tickInterval = 1000 / config.tickRate; // ms per tick
+  }
+
+  /**
+   * Get the grid
+   */
+  getGrid(): Grid {
+    return this.grid;
+  }
+
+  /**
+   * Get config
+   */
+  getConfig(): GameConfig {
+    return this.config;
+  }
+
+  /**
+   * Start the game loop
+   */
+  start(): void {
+    if (this.running) return;
+
+    this.running = true;
+    this.lastTickTime = performance.now();
+    this.gameLoop();
+    console.log('Game engine started');
+  }
+
+  /**
+   * Stop the game loop
+   */
+  stop(): void {
+    this.running = false;
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+    console.log('Game engine stopped');
+  }
+
+  /**
+   * Main game loop
+   */
+  private gameLoop = (): void => {
+    if (!this.running) return;
+
+    const now = performance.now();
+    const deltaTime = now - this.lastTickTime;
+    this.lastTickTime = now;
+
+    // Accumulate time
+    if (this.speed > 0) {
+      this.tickAccumulator += deltaTime * this.speed;
+    }
+
+    // Process ticks
+    while (this.tickAccumulator >= this.tickInterval) {
+      this.tick();
+      this.tickAccumulator -= this.tickInterval;
+    }
+
+    this.frameId = requestAnimationFrame(this.gameLoop);
+  };
+
+  /**
+   * Single simulation tick
+   */
+  private tick(): void {
+    this.gameTime++;
+
+    // Update game systems here
+    this.updateStatistics();
+
+    // Emit tick event for other systems
+    this.onTick();
+  }
+
+  /**
+   * Hook for tick events (override by systems)
+   */
+  protected onTick(): void {
+    // Will be used by simulation systems
+  }
+
+  /**
+   * Update game statistics
+   */
+  private updateStatistics(): void {
+    const cells = this.grid.getAllCells();
+
+    this.stats.roadCount = cells.filter(c => c.isRoad()).length;
+    this.stats.buildingCount = cells.filter(c => c.buildingLevel > 0).length;
+    this.stats.population = cells.reduce((sum, c) => sum + c.population, 0);
+  }
+
+  /**
+   * Set game speed
+   */
+  setSpeed(speed: number): void {
+    this.speed = Math.max(0, speed);
+  }
+
+  /**
+   * Get game speed
+   */
+  getSpeed(): number {
+    return this.speed;
+  }
+
+  /**
+   * Get game time
+   */
+  getGameTime(): number {
+    return this.gameTime;
+  }
+
+  /**
+   * Pause the game
+   */
+  pause(): void {
+    this.speed = 0;
+  }
+
+  /**
+   * Resume the game
+   */
+  resume(): void {
+    if (this.speed === 0) {
+      this.speed = 1;
+    }
+  }
+
+  /**
+   * Toggle pause
+   */
+  togglePause(): void {
+    if (this.speed === 0) {
+      this.resume();
+    } else {
+      this.pause();
+    }
+  }
+}
