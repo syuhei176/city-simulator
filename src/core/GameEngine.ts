@@ -111,6 +111,10 @@ export class GameEngine {
 
     // Initialize analytics systems
     this.historicalDataCollector = new HistoricalDataCollector(200, 10);
+
+    // Build initial road network
+    this.roadNetwork.buildFromGrid();
+    console.log('Initial road network built');
   }
 
   /**

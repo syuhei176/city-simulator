@@ -71,6 +71,7 @@ export class HUD {
       { type: ToolType.ZONE_RESIDENTIAL, label: '住宅', key: 'R' },
       { type: ToolType.ZONE_COMMERCIAL, label: '商業', key: 'C' },
       { type: ToolType.ZONE_INDUSTRIAL, label: '工業', key: 'I' },
+      { type: ToolType.BUS_STOP, label: 'バス停', key: 'B' },
       { type: ToolType.BULLDOZE, label: '破壊', key: 'D' },
     ];
 

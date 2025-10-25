@@ -1,6 +1,8 @@
 import { Camera } from '@/renderer/Camera';
 import { Grid } from '@/core/Grid';
 import { RoadType, ZoneType } from '@/core/types';
+import { TransitManager } from '@/transit/TransitManager';
+import { TransitType } from '@/transit/types';
 
 /**
  * Tool types for building
@@ -14,6 +16,7 @@ export enum ToolType {
   ZONE_COMMERCIAL = 'zone_commercial',
   ZONE_INDUSTRIAL = 'zone_industrial',
   BULLDOZE = 'bulldoze',
+  BUS_STOP = 'bus_stop',
 }
 
 /**
@@ -24,6 +27,7 @@ export class InputHandler {
   private camera: Camera;
   private grid: Grid;
   private cellSize: number;
+  private transitManager?: TransitManager;
 
   private currentTool: ToolType = ToolType.NONE;
   private isDrawing: boolean = false;
@@ -39,12 +43,14 @@ export class InputHandler {
     canvas: HTMLCanvasElement,
     camera: Camera,
     grid: Grid,
-    cellSize: number
+    cellSize: number,
+    transitManager?: TransitManager
   ) {
     this.canvas = canvas;
     this.camera = camera;
     this.grid = grid;
     this.cellSize = cellSize;
+    this.transitManager = transitManager;
 
     this.setupEventListeners();
   }
@@ -230,6 +236,12 @@ export class InputHandler {
       case 'D':
         this.setTool(ToolType.BULLDOZE);
         break;
+      case 'b':
+      case 'B':
+        // Note: 'B' was used for network rebuild in main.ts
+        // We'll use 'b' for bus stop placement
+        this.setTool(ToolType.BUS_STOP);
+        break;
     }
   };
 
@@ -350,6 +362,20 @@ export class InputHandler {
         const wasRoad = this.grid.getCell(cell.x, cell.y)?.isRoad();
         this.grid.clearCell(cell.x, cell.y);
         if (wasRoad) roadChanged = true;
+        break;
+      case ToolType.BUS_STOP:
+        if (this.transitManager) {
+          const stop = this.transitManager.addStop(
+            { x: cell.x, y: cell.y },
+            TransitType.BUS,
+            `バス停 ${cell.x},${cell.y}`
+          );
+          if (stop) {
+            console.log(`Bus stop placed at (${cell.x}, ${cell.y})`);
+          } else {
+            console.log(`Cannot place bus stop at (${cell.x}, ${cell.y}) - must be on a road`);
+          }
+        }
         break;
     }
 

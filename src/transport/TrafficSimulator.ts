@@ -74,7 +74,13 @@ export class TrafficSimulator {
    */
   private spawnRandomVehicle(): void {
     const nodes = this.network.getAllNodes();
-    if (nodes.length < 2) return;
+    if (nodes.length < 2) {
+      // Only log once to avoid spam
+      if (this.totalVehiclesSpawned === 0 && this.vehicles.size === 0) {
+        console.log(`Cannot spawn vehicles: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
+      }
+      return;
+    }
 
     // Pick random start and end nodes
     const startNode = nodes[Math.floor(Math.random() * nodes.length)];
@@ -98,6 +104,11 @@ export class TrafficSimulator {
     vehicle.setPath(path);
     this.vehicles.set(vehicle.id, vehicle);
     this.totalVehiclesSpawned++;
+
+    // Log first few vehicle spawns
+    if (this.totalVehiclesSpawned <= 3) {
+      console.log(`Vehicle spawned: ${vehicle.id} (total: ${this.totalVehiclesSpawned})`);
+    }
   }
 
   /**
