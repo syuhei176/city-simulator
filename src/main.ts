@@ -189,16 +189,16 @@ class CitySimulator {
           this.camera.zoomOut();
           break;
         case 'ArrowUp':
-          this.camera.pan(0, 100);
-          break;
-        case 'ArrowDown':
           this.camera.pan(0, -100);
           break;
+        case 'ArrowDown':
+          this.camera.pan(0, 100);
+          break;
         case 'ArrowLeft':
-          this.camera.pan(100, 0);
+          this.camera.pan(-100, 0);
           break;
         case 'ArrowRight':
-          this.camera.pan(-100, 0);
+          this.camera.pan(100, 0);
           break;
         case 'n':
         case 'N':
