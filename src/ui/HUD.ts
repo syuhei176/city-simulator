@@ -100,18 +100,31 @@ export class HUD {
 
       button.addEventListener('mouseenter', activateButton);
       button.addEventListener('mouseleave', deactivateButton);
+
+      // Handle touch events
       button.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent canvas from receiving this event
         activateButton();
       });
+
       button.addEventListener('touchend', (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent canvas from receiving this event
         deactivateButton();
-      });
-
-      button.addEventListener('click', () => {
+        // Trigger tool selection on touch end
         if (this.currentToolCallback) {
           this.currentToolCallback(tool.type);
+        }
+      });
+
+      // Handle mouse click (for non-touch devices)
+      button.addEventListener('click', (e) => {
+        // Only handle click if it's not from a touch event
+        if (e.detail !== 0) {
+          if (this.currentToolCallback) {
+            this.currentToolCallback(tool.type);
+          }
         }
       });
 
