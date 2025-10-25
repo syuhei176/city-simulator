@@ -175,10 +175,12 @@ export class HUD {
           background: rgba(255,255,255,0.1);
           border: 1px solid #666;
           color: white;
-          padding: 2px 8px;
+          padding: 6px 12px;
           border-radius: 4px;
           cursor: pointer;
           font-size: 11px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         ">${this.isStatsCollapsed ? '▼' : '▲'}</button>
       </div>
     `;
@@ -279,10 +281,18 @@ export class HUD {
         const isExpanded = this.expandedSections.has(section.id);
         sectionsHTML += `
           <div style="margin-top: 8px; border-top: 1px solid #444; padding-top: 6px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
-                 data-section="${section.id}">
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              cursor: pointer;
+              padding: 4px;
+              margin: -4px;
+              touch-action: manipulation;
+              -webkit-tap-highlight-color: transparent;
+            " data-section="${section.id}">
               <div style="font-weight: bold; font-size: 11px;">${section.title}</div>
-              <span style="font-size: 10px; color: #888;">${isExpanded ? '▼' : '▶'}</span>
+              <span style="font-size: 10px; color: #888; padding: 4px;">${isExpanded ? '▼' : '▶'}</span>
             </div>
             <div id="section-${section.id}" style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 4px;">
               ${section.content}
@@ -311,16 +321,28 @@ export class HUD {
     // Add event listeners for collapsible sections
     const collapseBtn = document.getElementById('hud-collapse-btn');
     if (collapseBtn) {
-      collapseBtn.addEventListener('click', () => {
+      // Handle both click and touch events
+      const toggleCollapse = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
         this.isStatsCollapsed = !this.isStatsCollapsed;
         this.update(engine); // Re-render
+      };
+
+      collapseBtn.addEventListener('click', toggleCollapse);
+      collapseBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        toggleCollapse(e);
       });
     }
 
     // Add event listeners for section toggles
     const sectionHeaders = this.statsElement.querySelectorAll('[data-section]');
     sectionHeaders.forEach(header => {
-      header.addEventListener('click', () => {
+      const toggleSection = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         const sectionId = (header as HTMLElement).dataset.section!;
         const sectionContent = document.getElementById(`section-${sectionId}`);
         if (sectionContent) {
@@ -335,6 +357,13 @@ export class HUD {
             (header.querySelector('span') as HTMLElement).textContent = '▼';
           }
         }
+      };
+
+      // Handle both click and touch events
+      header.addEventListener('click', toggleSection);
+      header.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        toggleSection(e);
       });
     });
   }
