@@ -24,6 +24,10 @@ export class MapRenderer {
   private showTrafficHeatmap: boolean = false;
   private heatmapMode: HeatmapMode = HeatmapMode.NONE;
 
+  // Performance optimization
+  private lastVisibleRange: { minX: number; maxX: number; minY: number; maxY: number } | null = null;
+  private frameSkipCounter: number = 0;
+
   // Colors
   private readonly colors = {
     empty: '#2d5016',
@@ -55,6 +59,10 @@ export class MapRenderer {
    * Render the entire map
    */
   render(grid: Grid): void {
+    // Performance optimization: skip every other frame if performance is low
+    this.frameSkipCounter++;
+    const skipFrame = this.frameSkipCounter % 2 === 0 && this.isLowPerformance();
+
     // Clear canvas
     this.ctx.fillStyle = '#1a1a1a';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -65,23 +73,42 @@ export class MapRenderer {
     // Calculate visible range
     const visibleRange = this.getVisibleRange(grid);
 
-    // Render cells
-    for (let y = visibleRange.minY; y <= visibleRange.maxY; y++) {
-      for (let x = visibleRange.minX; x <= visibleRange.maxX; x++) {
-        const cell = grid.getCell(x, y);
-        if (cell) {
-          this.renderCell(cell);
+    // Check if visible range changed
+    const rangeChanged = !this.lastVisibleRange ||
+      visibleRange.minX !== this.lastVisibleRange.minX ||
+      visibleRange.maxX !== this.lastVisibleRange.maxX ||
+      visibleRange.minY !== this.lastVisibleRange.minY ||
+      visibleRange.maxY !== this.lastVisibleRange.maxY;
+
+    this.lastVisibleRange = { ...visibleRange };
+
+    // Render cells (with optional frame skipping for performance)
+    if (!skipFrame || rangeChanged) {
+      for (let y = visibleRange.minY; y <= visibleRange.maxY; y++) {
+        for (let x = visibleRange.minX; x <= visibleRange.maxX; x++) {
+          const cell = grid.getCell(x, y);
+          if (cell) {
+            this.renderCell(cell);
+          }
         }
       }
     }
 
-    // Render grid lines
+    // Render grid lines (only at higher zoom levels)
     if (this.camera.zoom >= 0.5) {
       this.renderGrid(grid, visibleRange);
     }
 
     // Reset transform for UI elements
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  /**
+   * Check if performance is low (simple heuristic)
+   */
+  private isLowPerformance(): boolean {
+    // Consider performance low if zoom is very far out
+    return this.camera.zoom < 0.3;
   }
 
   /**
