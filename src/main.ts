@@ -98,7 +98,8 @@ class CitySimulator {
       this.canvas,
       this.camera,
       this.engine.getGrid(),
-      this.config.cellSize
+      this.config.cellSize,
+      this.engine.getTransitManager()
     );
 
     // Setup road change callback
@@ -211,9 +212,9 @@ class CitySimulator {
           this.networkRenderer.toggleEdges();
           console.log('Network edges toggled');
           break;
-        case 'b':
-        case 'B':
-          // Force rebuild network
+        case 'x':
+        case 'X':
+          // Force rebuild network (moved from 'B' to 'X')
           this.engine.rebuildNetwork();
           console.log('Network rebuilt manually');
           break;
