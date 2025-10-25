@@ -8,6 +8,7 @@ import { BuildingManager } from '@/buildings/BuildingManager';
 import { DemandCalculator } from '@/buildings/DemandCalculator';
 import { CitizenManager } from '@/economy/CitizenManager';
 import { EconomyManager } from '@/economy/EconomyManager';
+import { TransitManager } from '@/transit/TransitManager';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -38,6 +39,9 @@ export class GameEngine {
   private citizenManager: CitizenManager;
   private economyManager: EconomyManager;
 
+  // Transit systems
+  private transitManager: TransitManager;
+
   // Game state
   private gameTime: number = 0; // In-game time (in ticks)
   private speed: number = 1; // 0 = paused, 1 = normal, 2 = fast, 4 = very fast
@@ -65,6 +69,13 @@ export class GameEngine {
     unemploymentRate: 0,
     totalJobs: 0,
     availableJobs: 0,
+    // Transit stats
+    transitRoutes: 0,
+    transitStops: 0,
+    transitVehicles: 0,
+    transitPassengers: 0,
+    transitRidership: 0,
+    transitCoverage: 0,
   };
 
   constructor(config: GameConfig) {
@@ -90,6 +101,9 @@ export class GameEngine {
     // Initialize economy systems
     this.citizenManager = new CitizenManager(this.grid);
     this.economyManager = new EconomyManager(this.grid, this.citizenManager, this.stats.money);
+
+    // Initialize transit systems
+    this.transitManager = new TransitManager(this.grid);
   }
 
   /**
@@ -160,6 +174,13 @@ export class GameEngine {
    */
   getEconomyManager(): EconomyManager {
     return this.economyManager;
+  }
+
+  /**
+   * Get transit manager
+   */
+  getTransitManager(): TransitManager {
+    return this.transitManager;
   }
 
   /**
@@ -253,6 +274,9 @@ export class GameEngine {
     this.citizenManager.update();
     this.economyManager.update();
 
+    // Update transit systems
+    this.transitManager.update();
+
     // Update game systems here
     this.updateStatistics();
 
@@ -305,6 +329,15 @@ export class GameEngine {
     this.stats.unemploymentRate = Math.round(economyStats.unemploymentRate);
     this.stats.totalJobs = economyStats.totalJobs;
     this.stats.availableJobs = economyStats.availableJobs;
+
+    // Transit statistics
+    const transitStats = this.transitManager.getStats();
+    this.stats.transitRoutes = transitStats.totalRoutes;
+    this.stats.transitStops = transitStats.totalStops;
+    this.stats.transitVehicles = transitStats.totalVehicles;
+    this.stats.transitPassengers = transitStats.totalPassengers;
+    this.stats.transitRidership = transitStats.ridership;
+    this.stats.transitCoverage = Math.round(transitStats.coverage);
   }
 
   /**

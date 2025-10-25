@@ -188,6 +188,15 @@ export class HUD {
         <div>建物: ${stats.buildingCount}</div>
       </div>
       <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #0f0;">🚌 公共交通</div>
+        <div>路線: ${stats.transitRoutes}</div>
+        <div>停留所: ${stats.transitStops}</div>
+        <div>車両: ${stats.transitVehicles}</div>
+        <div>乗客: ${stats.transitPassengers.toLocaleString()}</div>
+        <div>月間利用: ${stats.transitRidership.toLocaleString()}</div>
+        <div>カバー率: ${stats.transitCoverage}%</div>
+      </div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
         <div style="font-weight: bold; color: #0f0;">ゾーン需要</div>
         <div style="margin-top: 5px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -237,6 +246,11 @@ export class HUD {
         <span style="color: #ff0;">
         [V]: Toggle Vehicles<br>
         [H]: Traffic Heatmap
+        </span><br>
+        <span style="color: #0f0;">
+        [T]: Toggle Routes<br>
+        [S]: Toggle Stops<br>
+        [U]: Toggle Transit
         </span>
       </div>
     `;

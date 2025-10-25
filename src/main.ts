@@ -4,6 +4,7 @@ import { Camera } from './renderer/Camera';
 import { MapRenderer } from './renderer/MapRenderer';
 import { NetworkRenderer } from './renderer/NetworkRenderer';
 import { VehicleRenderer } from './renderer/VehicleRenderer';
+import { TransitRenderer } from './renderer/TransitRenderer';
 import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
 import './style.css';
@@ -18,6 +19,7 @@ class CitySimulator {
   private renderer!: MapRenderer;
   private networkRenderer!: NetworkRenderer;
   private vehicleRenderer!: VehicleRenderer;
+  private transitRenderer!: TransitRenderer;
   private inputHandler!: InputHandler;
   private hud!: HUD;
 
@@ -72,6 +74,15 @@ class CitySimulator {
       this.canvas,
       this.camera,
       this.config.cellSize
+    );
+
+    // Create transit renderer
+    const ctx = this.canvas.getContext('2d')!;
+    this.transitRenderer = new TransitRenderer(
+      ctx,
+      this.camera,
+      this.config.cellSize,
+      this.engine.getTransitManager()
     );
 
     // Create input handler
@@ -185,6 +196,24 @@ class CitySimulator {
           this.renderer.toggleTrafficHeatmap();
           console.log('Traffic heatmap toggled');
           break;
+        case 't':
+        case 'T':
+          // Toggle transit routes
+          this.transitRenderer.toggleRoutes();
+          console.log('Transit routes toggled');
+          break;
+        case 's':
+        case 'S':
+          // Toggle transit stops
+          this.transitRenderer.toggleStops();
+          console.log('Transit stops toggled');
+          break;
+        case 'u':
+        case 'U':
+          // Toggle transit vehicles
+          this.transitRenderer.toggleVehicles();
+          console.log('Transit vehicles toggled');
+          break;
       }
     });
   }
@@ -203,6 +232,9 @@ class CitySimulator {
       // Render vehicles (if enabled)
       const vehicles = this.engine.getTrafficSimulator().getVehicles();
       this.vehicleRenderer.render(vehicles);
+
+      // Render transit (stops, routes, vehicles)
+      this.transitRenderer.render();
 
       // Update HUD
       this.hud.update(this.engine);
