@@ -4,6 +4,8 @@ import { RoadNetwork } from '@/transport/RoadNetwork';
 import { PathFinding } from '@/transport/PathFinding';
 import { TrafficSimulator } from '@/transport/TrafficSimulator';
 import { TrafficAnalytics } from '@/transport/TrafficAnalytics';
+import { BuildingManager } from '@/buildings/BuildingManager';
+import { DemandCalculator } from '@/buildings/DemandCalculator';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -26,6 +28,10 @@ export class GameEngine {
   private networkRebuildInterval: number = 60; // Rebuild every 60 ticks
   private ticksSinceNetworkRebuild: number = 0;
 
+  // Building systems
+  private buildingManager: BuildingManager;
+  private demandCalculator: DemandCalculator;
+
   // Game state
   private gameTime: number = 0; // In-game time (in ticks)
   private speed: number = 1; // 0 = paused, 1 = normal, 2 = fast, 4 = very fast
@@ -43,6 +49,9 @@ export class GameEngine {
     vehicleCount: 0,
     averageTrafficSpeed: 0,
     trafficCongestion: 0,
+    residentialDemand: 50,
+    commercialDemand: 50,
+    industrialDemand: 50,
   };
 
   constructor(config: GameConfig) {
@@ -60,6 +69,10 @@ export class GameEngine {
       config.cellSize
     );
     this.trafficAnalytics = new TrafficAnalytics(this.grid, this.trafficSimulator);
+
+    // Initialize building systems
+    this.buildingManager = new BuildingManager(this.grid);
+    this.demandCalculator = new DemandCalculator(this.grid);
   }
 
   /**
@@ -102,6 +115,20 @@ export class GameEngine {
    */
   getTrafficAnalytics(): TrafficAnalytics {
     return this.trafficAnalytics;
+  }
+
+  /**
+   * Get building manager
+   */
+  getBuildingManager(): BuildingManager {
+    return this.buildingManager;
+  }
+
+  /**
+   * Get demand calculator
+   */
+  getDemandCalculator(): DemandCalculator {
+    return this.demandCalculator;
   }
 
   /**
@@ -185,6 +212,12 @@ export class GameEngine {
     this.trafficSimulator.update();
     this.trafficAnalytics.update();
 
+    // Update building systems
+    this.demandCalculator.update();
+    const demand = this.demandCalculator.getDemand();
+    this.buildingManager.setDemand(demand);
+    this.buildingManager.update();
+
     // Update game systems here
     this.updateStatistics();
 
@@ -219,6 +252,12 @@ export class GameEngine {
     this.stats.vehicleCount = trafficStats.totalVehicles;
     this.stats.averageTrafficSpeed = trafficStats.averageSpeed;
     this.stats.trafficCongestion = trafficStats.averageCongestion;
+
+    // Demand statistics
+    const demand = this.demandCalculator.getDemand();
+    this.stats.residentialDemand = Math.round(demand.residential);
+    this.stats.commercialDemand = Math.round(demand.commercial);
+    this.stats.industrialDemand = Math.round(demand.industrial);
   }
 
   /**
