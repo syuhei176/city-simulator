@@ -28,6 +28,9 @@ export class InputHandler {
   private currentTool: ToolType = ToolType.NONE;
   private isDrawing: boolean = false;
 
+  // Callbacks
+  private onRoadChangedCallback?: () => void;
+
   constructor(
     canvas: HTMLCanvasElement,
     camera: Camera,
@@ -192,15 +195,20 @@ export class InputHandler {
     const cell = this.screenToGridCell(screenX, screenY);
     if (!cell) return;
 
+    let roadChanged = false;
+
     switch (this.currentTool) {
       case ToolType.ROAD_SMALL:
         this.grid.placeRoad(cell.x, cell.y, RoadType.SMALL);
+        roadChanged = true;
         break;
       case ToolType.ROAD_MEDIUM:
         this.grid.placeRoad(cell.x, cell.y, RoadType.MEDIUM);
+        roadChanged = true;
         break;
       case ToolType.ROAD_LARGE:
         this.grid.placeRoad(cell.x, cell.y, RoadType.LARGE);
+        roadChanged = true;
         break;
       case ToolType.ZONE_RESIDENTIAL:
         this.grid.setZone(cell.x, cell.y, ZoneType.RESIDENTIAL);
@@ -212,8 +220,15 @@ export class InputHandler {
         this.grid.setZone(cell.x, cell.y, ZoneType.INDUSTRIAL);
         break;
       case ToolType.BULLDOZE:
+        const wasRoad = this.grid.getCell(cell.x, cell.y)?.isRoad();
         this.grid.clearCell(cell.x, cell.y);
+        if (wasRoad) roadChanged = true;
         break;
+    }
+
+    // Notify if road changed
+    if (roadChanged && this.onRoadChangedCallback) {
+      this.onRoadChangedCallback();
     }
   }
 
@@ -230,5 +245,12 @@ export class InputHandler {
    */
   getCurrentTool(): ToolType {
     return this.currentTool;
+  }
+
+  /**
+   * Set callback for road changes
+   */
+  onRoadChanged(callback: () => void): void {
+    this.onRoadChangedCallback = callback;
   }
 }

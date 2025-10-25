@@ -2,6 +2,7 @@ import { GameEngine } from './core/GameEngine';
 import { GameConfig } from './core/types';
 import { Camera } from './renderer/Camera';
 import { MapRenderer } from './renderer/MapRenderer';
+import { NetworkRenderer } from './renderer/NetworkRenderer';
 import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
 import './style.css';
@@ -14,6 +15,7 @@ class CitySimulator {
   private engine!: GameEngine;
   private camera!: Camera;
   private renderer!: MapRenderer;
+  private networkRenderer!: NetworkRenderer;
   private inputHandler!: InputHandler;
   private hud!: HUD;
 
@@ -56,6 +58,13 @@ class CitySimulator {
       this.config.cellSize
     );
 
+    // Create network renderer
+    this.networkRenderer = new NetworkRenderer(
+      this.canvas,
+      this.camera,
+      this.config.cellSize
+    );
+
     // Create input handler
     this.inputHandler = new InputHandler(
       this.canvas,
@@ -63,6 +72,11 @@ class CitySimulator {
       this.engine.getGrid(),
       this.config.cellSize
     );
+
+    // Setup road change callback
+    this.inputHandler.onRoadChanged(() => {
+      this.engine.markNetworkDirty();
+    });
 
     // Create HUD
     const hudContainer = document.getElementById('hud-container')!;
@@ -132,6 +146,24 @@ class CitySimulator {
         case 'ArrowRight':
           this.camera.pan(-100, 0);
           break;
+        case 'n':
+        case 'N':
+          // Toggle network nodes
+          this.networkRenderer.toggleNodes();
+          console.log('Network nodes toggled');
+          break;
+        case 'e':
+        case 'E':
+          // Toggle network edges
+          this.networkRenderer.toggleEdges();
+          console.log('Network edges toggled');
+          break;
+        case 'b':
+        case 'B':
+          // Force rebuild network
+          this.engine.rebuildNetwork();
+          console.log('Network rebuilt manually');
+          break;
       }
     });
   }
@@ -143,6 +175,9 @@ class CitySimulator {
     const render = () => {
       // Render map
       this.renderer.render(this.engine.getGrid());
+
+      // Render network (if enabled)
+      this.networkRenderer.render(this.engine.getRoadNetwork());
 
       // Update HUD
       this.hud.update(this.engine);

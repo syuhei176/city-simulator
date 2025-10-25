@@ -113,19 +113,29 @@ export class HUD {
     const speedText = speed === 0 ? 'PAUSED' : `${speed}x`;
 
     this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 2</div>
       <div>資金: $${stats.money.toLocaleString()}</div>
       <div>人口: ${stats.population.toLocaleString()}</div>
       <div>収入: $${stats.income.toLocaleString()}/月</div>
       <div>支出: $${stats.expenses.toLocaleString()}/月</div>
       <div>道路: ${stats.roadCount}</div>
       <div>建物: ${stats.buildingCount}</div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #0ff;">道路ネットワーク</div>
+        <div>ノード: ${stats.networkNodes}</div>
+        <div>エッジ: ${stats.networkEdges}</div>
+      </div>
       <div style="margin-top: 10px;">速度: ${speedText}</div>
       <div style="margin-top: 10px; font-size: 11px; color: #888;">
         [Space]: Pause/Resume<br>
         [ESC]: Cancel Tool<br>
         [Scroll]: Zoom<br>
-        [Drag]: Pan
+        [Drag]: Pan<br>
+        <span style="color: #0ff;">
+        [N]: Toggle Nodes<br>
+        [E]: Toggle Edges<br>
+        [B]: Rebuild Network
+        </span>
       </div>
     `;
   }

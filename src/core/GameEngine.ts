@@ -1,5 +1,7 @@
 import { Grid } from './Grid';
 import { GameConfig } from './types';
+import { RoadNetwork } from '@/transport/RoadNetwork';
+import { PathFinding } from '@/transport/PathFinding';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -13,6 +15,13 @@ export class GameEngine {
   private tickInterval: number;
   private frameId: number | null = null;
 
+  // Transport systems
+  private roadNetwork: RoadNetwork;
+  private pathFinding: PathFinding;
+  private networkDirty: boolean = true;
+  private networkRebuildInterval: number = 60; // Rebuild every 60 ticks
+  private ticksSinceNetworkRebuild: number = 0;
+
   // Game state
   private gameTime: number = 0; // In-game time (in ticks)
   private speed: number = 1; // 0 = paused, 1 = normal, 2 = fast, 4 = very fast
@@ -25,12 +34,18 @@ export class GameEngine {
     expenses: 0,
     roadCount: 0,
     buildingCount: 0,
+    networkNodes: 0,
+    networkEdges: 0,
   };
 
   constructor(config: GameConfig) {
     this.config = config;
     this.grid = new Grid(config.gridWidth, config.gridHeight);
     this.tickInterval = 1000 / config.tickRate; // ms per tick
+
+    // Initialize transport systems
+    this.roadNetwork = new RoadNetwork(this.grid);
+    this.pathFinding = new PathFinding(this.roadNetwork);
   }
 
   /**
@@ -45,6 +60,37 @@ export class GameEngine {
    */
   getConfig(): GameConfig {
     return this.config;
+  }
+
+  /**
+   * Get road network
+   */
+  getRoadNetwork(): RoadNetwork {
+    return this.roadNetwork;
+  }
+
+  /**
+   * Get path finding
+   */
+  getPathFinding(): PathFinding {
+    return this.pathFinding;
+  }
+
+  /**
+   * Mark network as dirty (needs rebuild)
+   */
+  markNetworkDirty(): void {
+    this.networkDirty = true;
+  }
+
+  /**
+   * Force rebuild road network
+   */
+  rebuildNetwork(): void {
+    this.roadNetwork.buildFromGrid();
+    this.networkDirty = false;
+    this.ticksSinceNetworkRebuild = 0;
+    console.log('Road network rebuilt');
   }
 
   /**
@@ -101,6 +147,12 @@ export class GameEngine {
   private tick(): void {
     this.gameTime++;
 
+    // Check if network needs rebuild
+    this.ticksSinceNetworkRebuild++;
+    if (this.networkDirty && this.ticksSinceNetworkRebuild >= this.networkRebuildInterval) {
+      this.rebuildNetwork();
+    }
+
     // Update game systems here
     this.updateStatistics();
 
@@ -124,6 +176,11 @@ export class GameEngine {
     this.stats.roadCount = cells.filter(c => c.isRoad()).length;
     this.stats.buildingCount = cells.filter(c => c.buildingLevel > 0).length;
     this.stats.population = cells.reduce((sum, c) => sum + c.population, 0);
+
+    // Network statistics
+    const networkStats = this.roadNetwork.getStats();
+    this.stats.networkNodes = networkStats.nodeCount;
+    this.stats.networkEdges = networkStats.edgeCount;
   }
 
   /**
