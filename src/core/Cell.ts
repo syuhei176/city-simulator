@@ -20,6 +20,8 @@ export class Cell {
   public population: number = 0;
   public powerSupply: number = 0; // 0-100
   public waterSupply: number = 0; // 0-100
+  public roadAccess: boolean = false; // Has access to a road
+  public demand: number = 0; // Zone demand (0-100)
 
   constructor(
     public readonly x: number,

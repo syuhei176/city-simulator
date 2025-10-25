@@ -9,6 +9,8 @@ export class HUD {
   private statsElement: HTMLElement;
   private toolbarElement: HTMLElement;
   private currentToolCallback?: (tool: ToolType) => void;
+  private isStatsCollapsed: boolean = false;
+  private expandedSections: Set<string> = new Set(['finance', 'population']);
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -27,13 +29,16 @@ export class HUD {
       position: absolute;
       top: 10px;
       left: 10px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.85);
       color: white;
-      padding: 15px;
+      padding: 10px;
       border-radius: 8px;
       font-family: monospace;
-      font-size: 14px;
-      min-width: 200px;
+      font-size: 12px;
+      max-width: 280px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      overflow-x: hidden;
     `;
     this.container.appendChild(this.statsElement);
 
@@ -151,14 +156,6 @@ export class HUD {
       return '#ff0000';
     };
 
-    const getDemandBar = (demand: number): string => {
-      const width = Math.max(0, Math.min(100, demand));
-      const color = getDemandColor(demand);
-      return `<div style="width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 2px;">
-        <div style="width: ${width}%; background: ${color}; height: 100%; border-radius: 4px; transition: width 0.3s;"></div>
-      </div>`;
-    };
-
     // Income/expense color
     const netIncome = stats.income - stats.expenses;
     const netColor = netIncome > 0 ? '#00ff00' : netIncome < 0 ? '#ff0000' : '#ffff00';
@@ -167,93 +164,191 @@ export class HUD {
     const unemploymentColor = stats.unemploymentRate > 15 ? '#ff0000' :
                                stats.unemploymentRate > 8 ? '#ffff00' : '#00ff00';
 
-    this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 5</div>
-      <div style="font-weight: bold; color: #0f0;">💰 財政</div>
-      <div>資金: $${stats.money.toLocaleString()}</div>
-      <div>収入: <span style="color: #00ff00;">+$${stats.income.toLocaleString()}</span>/月</div>
-      <div>支出: <span style="color: #ff8800;">-$${stats.expenses.toLocaleString()}</span>/月</div>
-      <div>純利益: <span style="color: ${netColor};">${netIncome >= 0 ? '+' : ''}$${netIncome.toLocaleString()}</span>/月</div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #0ff;">👥 市民 & 雇用</div>
-        <div>市民数: ${stats.citizens.toLocaleString()}</div>
-        <div>人口: ${stats.population.toLocaleString()}</div>
-        <div>雇用: ${stats.employed.toLocaleString()} / ${stats.totalJobs.toLocaleString()}</div>
-        <div>失業率: <span style="color: ${unemploymentColor};">${stats.unemploymentRate}%</span></div>
-        <div>求人: ${stats.availableJobs.toLocaleString()}</div>
-      </div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #ff0;">🏗️ 建設</div>
-        <div>道路: ${stats.roadCount}</div>
-        <div>建物: ${stats.buildingCount}</div>
-      </div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #0f0;">🚌 公共交通</div>
-        <div>路線: ${stats.transitRoutes}</div>
-        <div>停留所: ${stats.transitStops}</div>
-        <div>車両: ${stats.transitVehicles}</div>
-        <div>乗客: ${stats.transitPassengers.toLocaleString()}</div>
-        <div>月間利用: ${stats.transitRidership.toLocaleString()}</div>
-        <div>カバー率: ${stats.transitCoverage}%</div>
-      </div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #0f0;">ゾーン需要</div>
-        <div style="margin-top: 5px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #4a7c59;">🏠 住宅:</span>
-            <span style="color: ${getDemandColor(stats.residentialDemand)}">${stats.residentialDemand}</span>
-          </div>
-          ${getDemandBar(stats.residentialDemand)}
-        </div>
-        <div style="margin-top: 5px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #4a5f7c;">🏢 商業:</span>
-            <span style="color: ${getDemandColor(stats.commercialDemand)}">${stats.commercialDemand}</span>
-          </div>
-          ${getDemandBar(stats.commercialDemand)}
-        </div>
-        <div style="margin-top: 5px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #7c6f4a;">🏭 工業:</span>
-            <span style="color: ${getDemandColor(stats.industrialDemand)}">${stats.industrialDemand}</span>
-          </div>
-          ${getDemandBar(stats.industrialDemand)}
-        </div>
-      </div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #0ff;">道路ネットワーク</div>
-        <div>ノード: ${stats.networkNodes}</div>
-        <div>エッジ: ${stats.networkEdges}</div>
-      </div>
-      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
-        <div style="font-weight: bold; color: #ff0;">交通状況</div>
-        <div>車両数: ${stats.vehicleCount}</div>
-        <div>平均速度: ${stats.averageTrafficSpeed.toFixed(2)}</div>
-        <div>混雑度: <span style="color: ${congestionColor}">${Math.round(stats.trafficCongestion)}%</span></div>
-      </div>
-      <div style="margin-top: 10px;">速度: ${speedText}</div>
-      <div style="margin-top: 10px; font-size: 11px; color: #888;">
-        <div style="font-weight: bold; margin-bottom: 5px;">操作方法:</div>
-        1本指: パン/描画<br>
-        2本指: ピンチズーム<br>
-        [Space]: Pause/Resume<br>
-        [ESC]: Cancel Tool<br>
-        <span style="color: #0ff;">
-        [N]: Toggle Nodes<br>
-        [E]: Toggle Edges<br>
-        [B]: Rebuild Network
-        </span><br>
-        <span style="color: #ff0;">
-        [V]: Toggle Vehicles<br>
-        [H]: Traffic Heatmap
-        </span><br>
-        <span style="color: #0f0;">
-        [T]: Toggle Routes<br>
-        [S]: Toggle Stops<br>
-        [U]: Toggle Transit
-        </span>
+    // Create collapsible sections
+    const sections: Array<{id: string, title: string, content: string}> = [];
+
+    // Title with collapse button
+    const titleSection = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 14px; font-weight: bold;">Phase 8</div>
+        <button id="hud-collapse-btn" style="
+          background: rgba(255,255,255,0.1);
+          border: 1px solid #666;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 11px;
+        ">${this.isStatsCollapsed ? '▼' : '▲'}</button>
       </div>
     `;
+
+    // Finance section
+    sections.push({
+      id: 'finance',
+      title: '💰 財政',
+      content: `
+        <div style="font-size: 11px; line-height: 1.4;">
+          <div>$${this.formatNumber(stats.money)}</div>
+          <div style="color: ${netColor};">${netIncome >= 0 ? '+' : ''}$${this.formatNumber(netIncome)}/月</div>
+        </div>
+      `
+    });
+
+    // Population section
+    sections.push({
+      id: 'population',
+      title: '👥 人口',
+      content: `
+        <div style="font-size: 11px; line-height: 1.4;">
+          <div>市民: ${this.formatNumber(stats.citizens)} (${this.formatNumber(stats.population)})</div>
+          <div>失業率: <span style="color: ${unemploymentColor};">${stats.unemploymentRate}%</span></div>
+        </div>
+      `
+    });
+
+    // Construction section
+    sections.push({
+      id: 'construction',
+      title: '🏗️ 建設',
+      content: `
+        <div style="font-size: 11px; line-height: 1.4;">
+          <div>道路: ${stats.roadCount} / 建物: ${stats.buildingCount}</div>
+        </div>
+      `
+    });
+
+    // Transit section
+    sections.push({
+      id: 'transit',
+      title: '🚌 交通',
+      content: `
+        <div style="font-size: 11px; line-height: 1.4;">
+          <div>路線: ${stats.transitRoutes} / 停留所: ${stats.transitStops}</div>
+          <div>乗客: ${this.formatNumber(stats.transitPassengers)} (${stats.transitCoverage}%)</div>
+        </div>
+      `
+    });
+
+    // Demand section
+    sections.push({
+      id: 'demand',
+      title: '📊 需要',
+      content: `
+        <div style="font-size: 11px;">
+          <div style="display: flex; gap: 5px; margin-top: 3px;">
+            <div style="flex: 1;">
+              <div style="color: #4a7c59; font-size: 10px;">🏠 ${stats.residentialDemand}</div>
+              <div style="width: 100%; background: #333; height: 4px; border-radius: 2px;">
+                <div style="width: ${stats.residentialDemand}%; background: ${getDemandColor(stats.residentialDemand)}; height: 100%; border-radius: 2px;"></div>
+              </div>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #4a5f7c; font-size: 10px;">🏢 ${stats.commercialDemand}</div>
+              <div style="width: 100%; background: #333; height: 4px; border-radius: 2px;">
+                <div style="width: ${stats.commercialDemand}%; background: ${getDemandColor(stats.commercialDemand)}; height: 100%; border-radius: 2px;"></div>
+              </div>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #7c6f4a; font-size: 10px;">🏭 ${stats.industrialDemand}</div>
+              <div style="width: 100%; background: #333; height: 4px; border-radius: 2px;">
+                <div style="width: ${stats.industrialDemand}%; background: ${getDemandColor(stats.industrialDemand)}; height: 100%; border-radius: 2px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    });
+
+    // Traffic section
+    sections.push({
+      id: 'traffic',
+      title: '🚗 交通',
+      content: `
+        <div style="font-size: 11px; line-height: 1.4;">
+          <div>車両: ${stats.vehicleCount}</div>
+          <div>混雑: <span style="color: ${congestionColor}">${Math.round(stats.trafficCongestion)}%</span></div>
+        </div>
+      `
+    });
+
+    // Build collapsible sections
+    let sectionsHTML = '';
+    if (!this.isStatsCollapsed) {
+      for (const section of sections) {
+        const isExpanded = this.expandedSections.has(section.id);
+        sectionsHTML += `
+          <div style="margin-top: 8px; border-top: 1px solid #444; padding-top: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+                 data-section="${section.id}">
+              <div style="font-weight: bold; font-size: 11px;">${section.title}</div>
+              <span style="font-size: 10px; color: #888;">${isExpanded ? '▼' : '▶'}</span>
+            </div>
+            <div id="section-${section.id}" style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 4px;">
+              ${section.content}
+            </div>
+          </div>
+        `;
+      }
+
+      // Speed indicator
+      sectionsHTML += `
+        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #444;">
+          <div style="font-size: 11px;">速度: <span style="font-weight: bold;">${speedText}</span></div>
+        </div>
+      `;
+
+      // Compact help
+      sectionsHTML += `
+        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #444; font-size: 10px; color: #888;">
+          <div>[M] ヒートマップ / [G] 統計 / [?] ヘルプ</div>
+        </div>
+      `;
+    }
+
+    this.statsElement.innerHTML = titleSection + sectionsHTML;
+
+    // Add event listeners for collapsible sections
+    const collapseBtn = document.getElementById('hud-collapse-btn');
+    if (collapseBtn) {
+      collapseBtn.addEventListener('click', () => {
+        this.isStatsCollapsed = !this.isStatsCollapsed;
+        this.update(engine); // Re-render
+      });
+    }
+
+    // Add event listeners for section toggles
+    const sectionHeaders = this.statsElement.querySelectorAll('[data-section]');
+    sectionHeaders.forEach(header => {
+      header.addEventListener('click', () => {
+        const sectionId = (header as HTMLElement).dataset.section!;
+        const sectionContent = document.getElementById(`section-${sectionId}`);
+        if (sectionContent) {
+          const isExpanded = this.expandedSections.has(sectionId);
+          if (isExpanded) {
+            this.expandedSections.delete(sectionId);
+            sectionContent.style.display = 'none';
+            (header.querySelector('span') as HTMLElement).textContent = '▶';
+          } else {
+            this.expandedSections.add(sectionId);
+            sectionContent.style.display = 'block';
+            (header.querySelector('span') as HTMLElement).textContent = '▼';
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Format number for compact display
+   */
+  private formatNumber(num: number): string {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   }
 
   /**

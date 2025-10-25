@@ -7,6 +7,11 @@ import { VehicleRenderer } from './renderer/VehicleRenderer';
 import { TransitRenderer } from './renderer/TransitRenderer';
 import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
+import { StatsPanel } from './ui/StatsPanel';
+import { SaveLoadPanel } from './ui/SaveLoadPanel';
+import { SaveLoadManager } from './systems/SaveLoadManager';
+import { MapTemplates } from './systems/MapTemplates';
+import { PerformanceOptimizer } from './systems/PerformanceOptimizer';
 import './style.css';
 
 /**
@@ -22,6 +27,9 @@ class CitySimulator {
   private transitRenderer!: TransitRenderer;
   private inputHandler!: InputHandler;
   private hud!: HUD;
+  private statsPanel!: StatsPanel;
+  private saveLoadPanel!: SaveLoadPanel;
+  private autoSaveInterval: number = 0;
 
   private readonly config: GameConfig = {
     gridWidth: 200,
@@ -105,12 +113,37 @@ class CitySimulator {
       this.inputHandler.setTool(tool);
     });
 
+    // Create Stats Panel
+    this.statsPanel = new StatsPanel(
+      hudContainer,
+      this.engine.getHistoricalDataCollector()
+    );
+
+    // Create Save/Load Panel
+    this.saveLoadPanel = new SaveLoadPanel(hudContainer, this.engine);
+
+    // Setup autosave (every 5 minutes)
+    this.autoSaveInterval = window.setInterval(() => {
+      SaveLoadManager.save(this.engine, 'autosave');
+      console.log('Autosaved');
+    }, 5 * 60 * 1000);
+
     // Setup keyboard controls
     this.setupKeyboardControls();
+
+    // Setup cleanup
+    this.setupCleanup();
 
     // Start game loop
     this.engine.start();
     this.startRenderLoop();
+
+    // Try to load autosave if it exists
+    if (SaveLoadManager.hasSave('autosave')) {
+      if (confirm('オートセーブが見つかりました。ロードしますか？')) {
+        SaveLoadManager.load(this.engine, 'autosave');
+      }
+    }
 
     console.log('City Simulator initialized successfully!');
   }
@@ -214,6 +247,41 @@ class CitySimulator {
           this.transitRenderer.toggleVehicles();
           console.log('Transit vehicles toggled');
           break;
+        case 'm':
+        case 'M':
+          // Cycle heatmap mode
+          const newMode = this.renderer.cycleHeatmapMode();
+          console.log('Heatmap mode:', newMode);
+          break;
+        case 'g':
+        case 'G':
+          // Toggle stats panel
+          this.statsPanel.toggle();
+          console.log('Stats panel toggled');
+          break;
+        case 'l':
+        case 'L':
+          // Toggle save/load panel
+          this.saveLoadPanel.toggle();
+          console.log('Save/Load panel toggled');
+          break;
+        case 'p':
+        case 'P':
+          // Quick save
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const slotName = `quicksave-${Date.now()}`;
+            SaveLoadManager.save(this.engine, slotName);
+            console.log('Quick saved:', slotName);
+          }
+          break;
+        case '0':
+          // Apply empty template
+          if (confirm('マップをクリアしますか？')) {
+            MapTemplates.applyTemplate(this.engine.getGrid(), '空のマップ');
+            this.engine.markNetworkDirty();
+          }
+          break;
       }
     });
   }
@@ -223,6 +291,9 @@ class CitySimulator {
    */
   private startRenderLoop(): void {
     const render = () => {
+      // Measure FPS
+      PerformanceOptimizer.measureFPS();
+
       // Render map
       this.renderer.render(this.engine.getGrid());
 
@@ -239,10 +310,33 @@ class CitySimulator {
       // Update HUD
       this.hud.update(this.engine);
 
+      // Update Stats Panel (if visible)
+      this.statsPanel.update();
+
+      // Log performance warnings if needed
+      if (PerformanceOptimizer.isPerformanceDegraded()) {
+        console.warn('Performance degraded - FPS:', PerformanceOptimizer.getAverageFPS().toFixed(1));
+      }
+
       requestAnimationFrame(render);
     };
 
     render();
+  }
+
+  /**
+   * Cleanup on page unload
+   */
+  private setupCleanup(): void {
+    window.addEventListener('beforeunload', () => {
+      // Clear autosave interval
+      if (this.autoSaveInterval) {
+        clearInterval(this.autoSaveInterval);
+      }
+
+      // Stop engine
+      this.engine.stop();
+    });
   }
 }
 
