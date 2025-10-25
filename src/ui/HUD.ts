@@ -46,7 +46,7 @@ export class HUD {
     this.toolbarElement.id = 'toolbar';
     this.toolbarElement.style.cssText = `
       position: absolute;
-      bottom: 20px;
+      bottom: 40px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.8);
