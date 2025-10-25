@@ -159,14 +159,34 @@ export class HUD {
       </div>`;
     };
 
+    // Income/expense color
+    const netIncome = stats.income - stats.expenses;
+    const netColor = netIncome > 0 ? '#00ff00' : netIncome < 0 ? '#ff0000' : '#ffff00';
+
+    // Unemployment color
+    const unemploymentColor = stats.unemploymentRate > 15 ? '#ff0000' :
+                               stats.unemploymentRate > 8 ? '#ffff00' : '#00ff00';
+
     this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 4</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 5</div>
+      <div style="font-weight: bold; color: #0f0;">💰 財政</div>
       <div>資金: $${stats.money.toLocaleString()}</div>
-      <div>人口: ${stats.population.toLocaleString()}</div>
-      <div>収入: $${stats.income.toLocaleString()}/月</div>
-      <div>支出: $${stats.expenses.toLocaleString()}/月</div>
-      <div>道路: ${stats.roadCount}</div>
-      <div>建物: ${stats.buildingCount}</div>
+      <div>収入: <span style="color: #00ff00;">+$${stats.income.toLocaleString()}</span>/月</div>
+      <div>支出: <span style="color: #ff8800;">-$${stats.expenses.toLocaleString()}</span>/月</div>
+      <div>純利益: <span style="color: ${netColor};">${netIncome >= 0 ? '+' : ''}$${netIncome.toLocaleString()}</span>/月</div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #0ff;">👥 市民 & 雇用</div>
+        <div>市民数: ${stats.citizens.toLocaleString()}</div>
+        <div>人口: ${stats.population.toLocaleString()}</div>
+        <div>雇用: ${stats.employed.toLocaleString()} / ${stats.totalJobs.toLocaleString()}</div>
+        <div>失業率: <span style="color: ${unemploymentColor};">${stats.unemploymentRate}%</span></div>
+        <div>求人: ${stats.availableJobs.toLocaleString()}</div>
+      </div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #ff0;">🏗️ 建設</div>
+        <div>道路: ${stats.roadCount}</div>
+        <div>建物: ${stats.buildingCount}</div>
+      </div>
       <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
         <div style="font-weight: bold; color: #0f0;">ゾーン需要</div>
         <div style="margin-top: 5px;">

@@ -6,6 +6,8 @@ import { TrafficSimulator } from '@/transport/TrafficSimulator';
 import { TrafficAnalytics } from '@/transport/TrafficAnalytics';
 import { BuildingManager } from '@/buildings/BuildingManager';
 import { DemandCalculator } from '@/buildings/DemandCalculator';
+import { CitizenManager } from '@/economy/CitizenManager';
+import { EconomyManager } from '@/economy/EconomyManager';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -32,6 +34,10 @@ export class GameEngine {
   private buildingManager: BuildingManager;
   private demandCalculator: DemandCalculator;
 
+  // Economy systems
+  private citizenManager: CitizenManager;
+  private economyManager: EconomyManager;
+
   // Game state
   private gameTime: number = 0; // In-game time (in ticks)
   private speed: number = 1; // 0 = paused, 1 = normal, 2 = fast, 4 = very fast
@@ -52,6 +58,13 @@ export class GameEngine {
     residentialDemand: 50,
     commercialDemand: 50,
     industrialDemand: 50,
+    // Economy stats
+    citizens: 0,
+    employed: 0,
+    unemployed: 0,
+    unemploymentRate: 0,
+    totalJobs: 0,
+    availableJobs: 0,
   };
 
   constructor(config: GameConfig) {
@@ -73,6 +86,10 @@ export class GameEngine {
     // Initialize building systems
     this.buildingManager = new BuildingManager(this.grid);
     this.demandCalculator = new DemandCalculator(this.grid);
+
+    // Initialize economy systems
+    this.citizenManager = new CitizenManager(this.grid);
+    this.economyManager = new EconomyManager(this.grid, this.citizenManager, this.stats.money);
   }
 
   /**
@@ -129,6 +146,20 @@ export class GameEngine {
    */
   getDemandCalculator(): DemandCalculator {
     return this.demandCalculator;
+  }
+
+  /**
+   * Get citizen manager
+   */
+  getCitizenManager(): CitizenManager {
+    return this.citizenManager;
+  }
+
+  /**
+   * Get economy manager
+   */
+  getEconomyManager(): EconomyManager {
+    return this.economyManager;
   }
 
   /**
@@ -218,6 +249,10 @@ export class GameEngine {
     this.buildingManager.setDemand(demand);
     this.buildingManager.update();
 
+    // Update economy systems
+    this.citizenManager.update();
+    this.economyManager.update();
+
     // Update game systems here
     this.updateStatistics();
 
@@ -258,6 +293,18 @@ export class GameEngine {
     this.stats.residentialDemand = Math.round(demand.residential);
     this.stats.commercialDemand = Math.round(demand.commercial);
     this.stats.industrialDemand = Math.round(demand.industrial);
+
+    // Economy statistics
+    const economyStats = this.economyManager.getStats();
+    this.stats.money = Math.round(economyStats.treasury);
+    this.stats.income = Math.round(economyStats.totalRevenue);
+    this.stats.expenses = Math.round(economyStats.totalExpenses);
+    this.stats.citizens = economyStats.totalCitizens;
+    this.stats.employed = economyStats.employedCitizens;
+    this.stats.unemployed = economyStats.unemployedCitizens;
+    this.stats.unemploymentRate = Math.round(economyStats.unemploymentRate);
+    this.stats.totalJobs = economyStats.totalJobs;
+    this.stats.availableJobs = economyStats.availableJobs;
   }
 
   /**
