@@ -28,6 +28,10 @@ export class InputHandler {
   private currentTool: ToolType = ToolType.NONE;
   private isDrawing: boolean = false;
 
+  // Touch support
+  private lastTouchDistance: number = 0;
+  private touches: Touch[] = [];
+
   // Callbacks
   private onRoadChangedCallback?: () => void;
 
@@ -56,6 +60,12 @@ export class InputHandler {
     this.canvas.addEventListener('wheel', this.onWheel);
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    // Touch events for iPad/mobile support
+    this.canvas.addEventListener('touchstart', this.onTouchStart, { passive: false });
+    this.canvas.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    this.canvas.addEventListener('touchend', this.onTouchEnd, { passive: false });
+    this.canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false });
+
     // Keyboard events
     window.addEventListener('keydown', this.onKeyDown);
   }
@@ -68,6 +78,10 @@ export class InputHandler {
     this.canvas.removeEventListener('mousemove', this.onMouseMove);
     this.canvas.removeEventListener('mouseup', this.onMouseUp);
     this.canvas.removeEventListener('wheel', this.onWheel);
+    this.canvas.removeEventListener('touchstart', this.onTouchStart);
+    this.canvas.removeEventListener('touchmove', this.onTouchMove);
+    this.canvas.removeEventListener('touchend', this.onTouchEnd);
+    this.canvas.removeEventListener('touchcancel', this.onTouchEnd);
     window.removeEventListener('keydown', this.onKeyDown);
   }
 
@@ -79,6 +93,37 @@ export class InputHandler {
     return {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
+    };
+  }
+
+  /**
+   * Get touch position relative to canvas
+   */
+  private getTouchPos(touch: Touch): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+  }
+
+  /**
+   * Calculate distance between two touches (for pinch zoom)
+   */
+  private getTouchDistance(touch1: Touch, touch2: Touch): number {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /**
+   * Get center point between two touches
+   */
+  private getTouchCenter(touch1: Touch, touch2: Touch): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+      y: (touch1.clientY + touch2.clientY) / 2 - rect.top,
     };
   }
 
@@ -185,6 +230,90 @@ export class InputHandler {
       case 'D':
         this.setTool(ToolType.BULLDOZE);
         break;
+    }
+  };
+
+  /**
+   * Handle touch start
+   */
+  private onTouchStart = (event: TouchEvent): void => {
+    event.preventDefault();
+    this.touches = Array.from(event.touches);
+
+    if (this.touches.length === 1) {
+      // Single touch - drawing or panning
+      const pos = this.getTouchPos(this.touches[0]);
+
+      if (this.currentTool !== ToolType.NONE) {
+        this.isDrawing = true;
+        this.applyTool(pos.x, pos.y);
+      } else {
+        // Pan mode
+        this.camera.onMouseDown(pos.x, pos.y);
+      }
+    } else if (this.touches.length === 2) {
+      // Two finger touch - prepare for pinch zoom
+      this.isDrawing = false;
+      this.camera.onMouseUp(); // Stop any panning
+      this.lastTouchDistance = this.getTouchDistance(this.touches[0], this.touches[1]);
+    }
+  };
+
+  /**
+   * Handle touch move
+   */
+  private onTouchMove = (event: TouchEvent): void => {
+    event.preventDefault();
+    this.touches = Array.from(event.touches);
+
+    if (this.touches.length === 1) {
+      // Single touch - drawing or panning
+      const pos = this.getTouchPos(this.touches[0]);
+
+      // Handle panning
+      if (this.camera.onMouseMove(pos.x, pos.y)) {
+        return;
+      }
+
+      // Handle tool drawing
+      if (this.isDrawing && this.currentTool !== ToolType.NONE) {
+        this.applyTool(pos.x, pos.y);
+      }
+    } else if (this.touches.length === 2) {
+      // Two finger touch - pinch zoom
+      const currentDistance = this.getTouchDistance(this.touches[0], this.touches[1]);
+      const center = this.getTouchCenter(this.touches[0], this.touches[1]);
+
+      if (this.lastTouchDistance > 0) {
+        const delta = (currentDistance - this.lastTouchDistance) * 0.01;
+        this.camera.zoomAt(center.x, center.y, delta);
+      }
+
+      this.lastTouchDistance = currentDistance;
+    }
+  };
+
+  /**
+   * Handle touch end
+   */
+  private onTouchEnd = (event: TouchEvent): void => {
+    event.preventDefault();
+    this.touches = Array.from(event.touches);
+
+    if (this.touches.length === 0) {
+      // All touches ended
+      this.camera.onMouseUp();
+      this.isDrawing = false;
+      this.lastTouchDistance = 0;
+    } else if (this.touches.length === 1) {
+      // Went from 2+ touches to 1 touch
+      this.lastTouchDistance = 0;
+      const pos = this.getTouchPos(this.touches[0]);
+
+      if (this.currentTool === ToolType.NONE) {
+        // Resume panning with remaining touch
+        this.camera.onMouseDown(pos.x, pos.y);
+      }
     }
   };
 

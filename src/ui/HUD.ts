@@ -73,25 +73,40 @@ export class HUD {
       const button = document.createElement('button');
       button.textContent = `${tool.label} [${tool.key}]`;
       button.style.cssText = `
-        padding: 10px 15px;
+        padding: 12px 16px;
         background: #333;
         color: white;
         border: 2px solid #555;
-        border-radius: 5px;
+        border-radius: 8px;
         cursor: pointer;
         font-family: sans-serif;
-        font-size: 12px;
+        font-size: 14px;
+        font-weight: 600;
         transition: all 0.2s;
+        min-width: 80px;
+        min-height: 48px;
       `;
 
-      button.addEventListener('mouseenter', () => {
+      // Support both mouse and touch events
+      const activateButton = () => {
         button.style.background = '#555';
         button.style.borderColor = '#777';
-      });
+      };
 
-      button.addEventListener('mouseleave', () => {
+      const deactivateButton = () => {
         button.style.background = '#333';
         button.style.borderColor = '#555';
+      };
+
+      button.addEventListener('mouseenter', activateButton);
+      button.addEventListener('mouseleave', deactivateButton);
+      button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        activateButton();
+      });
+      button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        deactivateButton();
       });
 
       button.addEventListener('click', () => {
@@ -137,10 +152,11 @@ export class HUD {
       </div>
       <div style="margin-top: 10px;">速度: ${speedText}</div>
       <div style="margin-top: 10px; font-size: 11px; color: #888;">
+        <div style="font-weight: bold; margin-bottom: 5px;">操作方法:</div>
+        1本指: パン/描画<br>
+        2本指: ピンチズーム<br>
         [Space]: Pause/Resume<br>
         [ESC]: Cancel Tool<br>
-        [Scroll]: Zoom<br>
-        [Drag]: Pan<br>
         <span style="color: #0ff;">
         [N]: Toggle Nodes<br>
         [E]: Toggle Edges<br>
