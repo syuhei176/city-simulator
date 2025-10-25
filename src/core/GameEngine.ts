@@ -9,6 +9,7 @@ import { DemandCalculator } from '@/buildings/DemandCalculator';
 import { CitizenManager } from '@/economy/CitizenManager';
 import { EconomyManager } from '@/economy/EconomyManager';
 import { TransitManager } from '@/transit/TransitManager';
+import { HistoricalDataCollector } from '@/analytics/HistoricalDataCollector';
 
 /**
  * Main game engine that manages the game loop and simulation
@@ -41,6 +42,9 @@ export class GameEngine {
 
   // Transit systems
   private transitManager: TransitManager;
+
+  // Analytics systems
+  private historicalDataCollector: HistoricalDataCollector;
 
   // Game state
   private gameTime: number = 0; // In-game time (in ticks)
@@ -104,6 +108,9 @@ export class GameEngine {
 
     // Initialize transit systems
     this.transitManager = new TransitManager(this.grid);
+
+    // Initialize analytics systems
+    this.historicalDataCollector = new HistoricalDataCollector(200, 10);
   }
 
   /**
@@ -181,6 +188,13 @@ export class GameEngine {
    */
   getTransitManager(): TransitManager {
     return this.transitManager;
+  }
+
+  /**
+   * Get historical data collector
+   */
+  getHistoricalDataCollector(): HistoricalDataCollector {
+    return this.historicalDataCollector;
   }
 
   /**
@@ -279,6 +293,9 @@ export class GameEngine {
 
     // Update game systems here
     this.updateStatistics();
+
+    // Update historical data
+    this.historicalDataCollector.update(this.gameTime, this.stats);
 
     // Emit tick event for other systems
     this.onTick();

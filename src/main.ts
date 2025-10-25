@@ -7,6 +7,7 @@ import { VehicleRenderer } from './renderer/VehicleRenderer';
 import { TransitRenderer } from './renderer/TransitRenderer';
 import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
+import { StatsPanel } from './ui/StatsPanel';
 import './style.css';
 
 /**
@@ -22,6 +23,7 @@ class CitySimulator {
   private transitRenderer!: TransitRenderer;
   private inputHandler!: InputHandler;
   private hud!: HUD;
+  private statsPanel!: StatsPanel;
 
   private readonly config: GameConfig = {
     gridWidth: 200,
@@ -104,6 +106,12 @@ class CitySimulator {
     this.hud.onToolSelect((tool) => {
       this.inputHandler.setTool(tool);
     });
+
+    // Create Stats Panel
+    this.statsPanel = new StatsPanel(
+      hudContainer,
+      this.engine.getHistoricalDataCollector()
+    );
 
     // Setup keyboard controls
     this.setupKeyboardControls();
@@ -214,6 +222,18 @@ class CitySimulator {
           this.transitRenderer.toggleVehicles();
           console.log('Transit vehicles toggled');
           break;
+        case 'm':
+        case 'M':
+          // Cycle heatmap mode
+          const newMode = this.renderer.cycleHeatmapMode();
+          console.log('Heatmap mode:', newMode);
+          break;
+        case 'g':
+        case 'G':
+          // Toggle stats panel
+          this.statsPanel.toggle();
+          console.log('Stats panel toggled');
+          break;
       }
     });
   }
@@ -238,6 +258,9 @@ class CitySimulator {
 
       // Update HUD
       this.hud.update(this.engine);
+
+      // Update Stats Panel (if visible)
+      this.statsPanel.update();
 
       requestAnimationFrame(render);
     };

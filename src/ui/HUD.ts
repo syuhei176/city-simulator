@@ -168,7 +168,7 @@ export class HUD {
                                stats.unemploymentRate > 8 ? '#ffff00' : '#00ff00';
 
     this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 5</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 7</div>
       <div style="font-weight: bold; color: #0f0;">💰 財政</div>
       <div>資金: $${stats.money.toLocaleString()}</div>
       <div>収入: <span style="color: #00ff00;">+$${stats.income.toLocaleString()}</span>/月</div>
@@ -251,6 +251,10 @@ export class HUD {
         [T]: Toggle Routes<br>
         [S]: Toggle Stops<br>
         [U]: Toggle Transit
+        </span><br>
+        <span style="color: #f0f;">
+        [M]: Cycle Heatmap<br>
+        [G]: Stats Panel
         </span>
       </div>
     `;
