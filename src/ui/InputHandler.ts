@@ -270,14 +270,12 @@ export class InputHandler {
       // Single touch - drawing or panning
       const pos = this.getTouchPos(this.touches[0]);
 
-      // Handle panning
-      if (this.camera.onMouseMove(pos.x, pos.y)) {
-        return;
-      }
-
-      // Handle tool drawing
+      // Handle tool drawing (priority over panning when tool is selected)
       if (this.isDrawing && this.currentTool !== ToolType.NONE) {
         this.applyTool(pos.x, pos.y);
+      } else {
+        // Handle panning only when no tool is selected
+        this.camera.onMouseMove(pos.x, pos.y);
       }
     } else if (this.touches.length === 2) {
       // Two finger touch - pinch zoom

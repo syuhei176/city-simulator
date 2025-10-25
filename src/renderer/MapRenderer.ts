@@ -179,7 +179,9 @@ export class MapRenderer {
    * Render building on a cell
    */
   private renderBuilding(cell: Cell, x: number, y: number): void {
-    const margin = this.cellSize * 0.1;
+    // Building size increases with level
+    const levelMultiplier = 0.5 + (cell.buildingLevel * 0.15);
+    const margin = this.cellSize * (0.25 - levelMultiplier * 0.1);
     const buildingSize = this.cellSize - margin * 2;
 
     // Building base
@@ -200,6 +202,36 @@ export class MapRenderer {
       buildingSize,
       buildingSize
     );
+
+    // Add details for higher level buildings
+    if (cell.buildingLevel >= 2) {
+      // Windows/details
+      this.ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
+      const detailSize = buildingSize * 0.15;
+      const gap = buildingSize * 0.25;
+
+      for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+          this.ctx.fillRect(
+            x + margin + gap + i * gap,
+            y + margin + gap + j * gap,
+            detailSize,
+            detailSize
+          );
+        }
+      }
+    }
+
+    // Top highlight for level 3 buildings
+    if (cell.buildingLevel >= 3) {
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      this.ctx.fillRect(
+        x + margin,
+        y + margin,
+        buildingSize,
+        buildingSize * 0.15
+      );
+    }
   }
 
   /**

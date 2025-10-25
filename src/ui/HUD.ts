@@ -100,18 +100,31 @@ export class HUD {
 
       button.addEventListener('mouseenter', activateButton);
       button.addEventListener('mouseleave', deactivateButton);
+
+      // Handle touch events
       button.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent canvas from receiving this event
         activateButton();
       });
+
       button.addEventListener('touchend', (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent canvas from receiving this event
         deactivateButton();
-      });
-
-      button.addEventListener('click', () => {
+        // Trigger tool selection on touch end
         if (this.currentToolCallback) {
           this.currentToolCallback(tool.type);
+        }
+      });
+
+      // Handle mouse click (for non-touch devices)
+      button.addEventListener('click', (e) => {
+        // Only handle click if it's not from a touch event
+        if (e.detail !== 0) {
+          if (this.currentToolCallback) {
+            this.currentToolCallback(tool.type);
+          }
         }
       });
 
@@ -131,14 +144,53 @@ export class HUD {
                              stats.trafficCongestion > 50 ? '#ff8800' :
                              stats.trafficCongestion > 25 ? '#ffff00' : '#00ff00';
 
+    // Demand colors - higher demand = greener
+    const getDemandColor = (demand: number): string => {
+      if (demand > 70) return '#00ff00';
+      if (demand > 40) return '#ffff00';
+      return '#ff0000';
+    };
+
+    const getDemandBar = (demand: number): string => {
+      const width = Math.max(0, Math.min(100, demand));
+      const color = getDemandColor(demand);
+      return `<div style="width: 100%; background: #333; height: 8px; border-radius: 4px; margin-top: 2px;">
+        <div style="width: ${width}%; background: ${color}; height: 100%; border-radius: 4px; transition: width 0.3s;"></div>
+      </div>`;
+    };
+
     this.statsElement.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 3</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">都市シミュレーター Phase 4</div>
       <div>資金: $${stats.money.toLocaleString()}</div>
       <div>人口: ${stats.population.toLocaleString()}</div>
       <div>収入: $${stats.income.toLocaleString()}/月</div>
       <div>支出: $${stats.expenses.toLocaleString()}/月</div>
       <div>道路: ${stats.roadCount}</div>
       <div>建物: ${stats.buildingCount}</div>
+      <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
+        <div style="font-weight: bold; color: #0f0;">ゾーン需要</div>
+        <div style="margin-top: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #4a7c59;">🏠 住宅:</span>
+            <span style="color: ${getDemandColor(stats.residentialDemand)}">${stats.residentialDemand}</span>
+          </div>
+          ${getDemandBar(stats.residentialDemand)}
+        </div>
+        <div style="margin-top: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #4a5f7c;">🏢 商業:</span>
+            <span style="color: ${getDemandColor(stats.commercialDemand)}">${stats.commercialDemand}</span>
+          </div>
+          ${getDemandBar(stats.commercialDemand)}
+        </div>
+        <div style="margin-top: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #7c6f4a;">🏭 工業:</span>
+            <span style="color: ${getDemandColor(stats.industrialDemand)}">${stats.industrialDemand}</span>
+          </div>
+          ${getDemandBar(stats.industrialDemand)}
+        </div>
+      </div>
       <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 8px;">
         <div style="font-weight: bold; color: #0ff;">道路ネットワーク</div>
         <div>ノード: ${stats.networkNodes}</div>
