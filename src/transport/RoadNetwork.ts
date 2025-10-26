@@ -26,6 +26,7 @@ export class RoadNetwork {
     this.edges.clear();
 
     const roadCells = this.grid.getRoadCells();
+    console.log(`[Road Network] Building from ${roadCells.length} road cells`);
 
     // Create nodes for each road cell
     for (const cell of roadCells) {
@@ -38,8 +39,13 @@ export class RoadNetwork {
     }
 
     console.log(
-      `Road network built: ${this.nodes.size} nodes, ${this.edges.size} edges`
+      `[Road Network] Built: ${this.nodes.size} nodes, ${this.edges.size} edges`
     );
+
+    // Log first few nodes for debugging
+    if (this.nodes.size > 0 && this.nodes.size <= 5) {
+      console.log(`[Road Network] Node IDs:`, Array.from(this.nodes.keys()));
+    }
   }
 
   /**

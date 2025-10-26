@@ -35,10 +35,20 @@ export class TrafficSimulator {
     this.vehicles = new Map();
   }
 
+  // Debug counter for logging
+  private updateCounter: number = 0;
+
   /**
    * Update simulation
    */
   update(): void {
+    this.updateCounter++;
+
+    // Log every 100 updates to confirm update is being called
+    if (this.updateCounter % 100 === 0) {
+      console.log(`[Traffic Update] Update #${this.updateCounter}, vehicles: ${this.vehicles.size}, nodes: ${this.network.getAllNodes().length}`);
+    }
+
     // Try to spawn new vehicles
     if (Math.random() < this.spawnRate && this.vehicles.size < this.maxVehicles) {
       this.spawnRandomVehicle();
@@ -75,10 +85,8 @@ export class TrafficSimulator {
   private spawnRandomVehicle(): void {
     const nodes = this.network.getAllNodes();
     if (nodes.length < 2) {
-      // Only log once to avoid spam
-      if (this.totalVehiclesSpawned === 0 && this.vehicles.size === 0) {
-        console.log(`Cannot spawn vehicles: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
-      }
+      // Log every time to understand the issue
+      console.log(`[Vehicle Spawn] Cannot spawn: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
       return;
     }
 
@@ -86,11 +94,17 @@ export class TrafficSimulator {
     const startNode = nodes[Math.floor(Math.random() * nodes.length)];
     const endNode = nodes[Math.floor(Math.random() * nodes.length)];
 
-    if (startNode.id === endNode.id) return;
+    if (startNode.id === endNode.id) {
+      console.log(`[Vehicle Spawn] Cannot spawn: start and end nodes are the same (${startNode.id})`);
+      return;
+    }
 
     // Find path
     const path = this.pathFinding.findPathBetweenNodes(startNode.id, endNode.id);
-    if (!path.exists) return;
+    if (!path.exists) {
+      console.log(`[Vehicle Spawn] Cannot spawn: no path found from ${startNode.id} to ${endNode.id}`);
+      return;
+    }
 
     // Create vehicle
     const vehicleType = this.getRandomVehicleType();
