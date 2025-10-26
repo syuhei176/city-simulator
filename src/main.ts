@@ -105,6 +105,7 @@ class CitySimulator {
     // Setup road change callback
     this.inputHandler.onRoadChanged(() => {
       this.engine.markNetworkDirty();
+      this.engine.rebuildNetwork(); // Immediately rebuild network for vehicle spawning
     });
 
     // Create HUD
