@@ -27,6 +27,14 @@ export interface SaveData {
       west: boolean;
     };
   }>;
+  transit?: {
+    stops: Array<any>;
+    routes: Array<any>;
+    vehicles: Array<any>;
+    nextStopId: number;
+    nextRouteId: number;
+    nextVehicleId: number;
+  };
 }
 
 /**
@@ -43,6 +51,8 @@ export class SaveLoadManager {
   static save(engine: GameEngine, slotName: string = 'autosave'): boolean {
     try {
       const grid = engine.getGrid();
+      const transitManager = engine.getTransitManager();
+
       const saveData: SaveData = {
         version: this.VERSION,
         timestamp: Date.now(),
@@ -73,6 +83,16 @@ export class SaveLoadManager {
           });
         }
       }
+
+      // Save transit data
+      saveData.transit = {
+        stops: transitManager.getStopsData(),
+        routes: transitManager.getRoutesData(),
+        vehicles: transitManager.getVehiclesData(),
+        nextStopId: (transitManager as any).nextStopId,
+        nextRouteId: (transitManager as any).nextRouteId,
+        nextVehicleId: (transitManager as any).nextVehicleId,
+      };
 
       // Get existing saves
       const saves = this.getAllSaves();
@@ -146,6 +166,12 @@ export class SaveLoadManager {
       // Restore game state
       engine.setSpeed(saveData.speed);
       Object.assign(engine.stats, saveData.stats);
+
+      // Restore transit data if available
+      if (saveData.transit) {
+        const transitManager = engine.getTransitManager();
+        transitManager.loadData(saveData.transit);
+      }
 
       // Mark network as dirty to rebuild
       engine.markNetworkDirty();
