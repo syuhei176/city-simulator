@@ -28,7 +28,6 @@ export class GridPathFinding {
     const endCell = this.grid.getCell(end.x, end.y);
 
     if (!startCell || !endCell) {
-      console.warn(`[GridPathFinding] Invalid cells - startCell: ${!!startCell}, endCell: ${!!endCell} at (${start.x},${start.y}) -> (${end.x},${end.y})`);
       return {
         nodes: [],
         totalCost: Infinity,
@@ -45,8 +44,6 @@ export class GridPathFinding {
    */
   private aStar(start: Position, end: Position): Path {
     try {
-      console.log(`[GridPathFinding] Finding path from (${start.x},${start.y}) to (${end.x},${end.y})`);
-
       const openSet = new PriorityQueue<string>();
       const cameFrom = new Map<string, string>();
       const gScore = new Map<string, number>();
@@ -55,28 +52,17 @@ export class GridPathFinding {
       const startId = this.positionToId(start);
       const endId = this.positionToId(end);
 
-      console.log(`[GridPathFinding] IDs created - start: ${startId}, end: ${endId}`);
-
       // Initialize
       gScore.set(startId, 0);
-      console.log(`[GridPathFinding] Set gScore[${startId}] = 0`);
       const h = this.heuristic(start, end);
-      console.log(`[GridPathFinding] Heuristic calculated: ${h}`);
       fScore.set(startId, h);
       openSet.enqueue(startId, h);
-      console.log(`[GridPathFinding] Enqueued startId: ${startId} with priority: ${h}`);
 
       let iterations = 0;
       const maxIterations = 50000; // Increased for grid-based search
 
-      console.log(`[GridPathFinding] Starting A* search. OpenSet initial size check...`);
-
     while (!openSet.isEmpty()) {
       iterations++;
-
-      if (iterations === 1) {
-        console.log(`[GridPathFinding] First iteration started, about to dequeue`);
-      }
 
       if (iterations > maxIterations) {
         console.warn(`[GridPathFinding] Exceeded max iterations (${maxIterations})`);
@@ -84,62 +70,29 @@ export class GridPathFinding {
       }
 
       const currentId = openSet.dequeue()!;
-
-      if (iterations === 1) {
-        console.log(`[GridPathFinding] Dequeued: ${currentId}`);
-        console.log(`[GridPathFinding] gScore for currentId: ${gScore.get(currentId)}`);
-        console.log(`[GridPathFinding] gScore has currentId: ${gScore.has(currentId)}`);
-        console.log(`[GridPathFinding] All gScore keys:`, Array.from(gScore.keys()));
-      }
-
       const current = this.idToPosition(currentId);
-
-      if (iterations === 1) {
-        console.log(`[GridPathFinding] Converted to position: (${current.x},${current.y})`);
-        console.log(`[GridPathFinding] Checking if reached destination - current: ${currentId}, end: ${endId}, equal: ${currentId === endId}`);
-      }
 
       // Reached destination
       if (currentId === endId) {
-        console.log(`[GridPathFinding] Success! Path found in ${iterations} iterations, cost: ${gScore.get(currentId)?.toFixed(2)}`);
         return this.reconstructPath(cameFrom, currentId, gScore.get(currentId) || 0);
-      }
-
-      // Log progress every 5000 iterations
-      if (iterations % 5000 === 0) {
-        console.log(`[GridPathFinding] Still searching... ${iterations} iterations`);
       }
 
       // Explore neighbors (4-directional: up, down, left, right)
       const neighbors = this.getNeighbors(current);
 
-      if (iterations === 1) {
-        console.log(`[GridPathFinding] First iteration - found ${neighbors.length} neighbors`);
-      }
-
       for (const neighbor of neighbors) {
         const neighborId = this.positionToId(neighbor);
         const movementCost = this.getMovementCost(current, neighbor);
 
-        if (iterations === 1 && neighbor === neighbors[0]) {
-          console.log(`[GridPathFinding] First neighbor - id: ${neighborId}, movementCost: ${movementCost}`);
-        }
-
         if (movementCost === Infinity) {
-          if (iterations === 1) {
-            console.log(`[GridPathFinding] Neighbor ${neighborId} has infinite cost, skipping`);
-          }
           continue; // Impassable
         }
 
-        const tentativeGScore = (gScore.get(currentId) || Infinity) + movementCost;
+        const currentGScore = gScore.get(currentId);
+        const tentativeGScore = (currentGScore !== undefined ? currentGScore : Infinity) + movementCost;
 
-        if (iterations === 1 && neighbor === neighbors[0]) {
-          console.log(`[GridPathFinding] tentativeGScore: ${tentativeGScore}, current gScore for neighbor: ${gScore.get(neighborId) || Infinity}`);
-          console.log(`[GridPathFinding] Should add to openSet: ${tentativeGScore < (gScore.get(neighborId) || Infinity)}`);
-        }
-
-        if (tentativeGScore < (gScore.get(neighborId) || Infinity)) {
+        const neighborGScore = gScore.get(neighborId);
+        if (tentativeGScore < (neighborGScore !== undefined ? neighborGScore : Infinity)) {
           // This path is better
           cameFrom.set(neighborId, currentId);
           gScore.set(neighborId, tentativeGScore);
@@ -147,29 +100,12 @@ export class GridPathFinding {
           const f = tentativeGScore + h;
           fScore.set(neighborId, f);
 
-          if (iterations === 1 && neighbor === neighbors[0]) {
-            console.log(`[GridPathFinding] Adding neighbor to openSet with f=${f}, h=${h}`);
-          }
-
           openSet.enqueue(neighborId, f);
-
-          if (iterations === 1 && neighbor === neighbors[0]) {
-            console.log(`[GridPathFinding] After enqueue, openSet size: ${openSet.size()}`);
-          }
         }
-      }
-
-      if (iterations === 1) {
-        console.log(`[GridPathFinding] First iteration complete. OpenSet size: ${openSet.size()}`);
-      }
-
-      if (iterations === 2) {
-        console.log(`[GridPathFinding] Second iteration started`);
       }
     }
 
       // No path found
-      console.warn(`[GridPathFinding] No path found after ${iterations} iterations. OpenSet empty: ${openSet.isEmpty()}`);
       return {
         nodes: [],
         totalCost: Infinity,
