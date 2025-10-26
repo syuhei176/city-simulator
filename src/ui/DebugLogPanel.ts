@@ -98,31 +98,40 @@ export class DebugLogPanel {
         <div style="font-weight: bold;">🔍 Debug Log</div>
         <div style="display: flex; gap: 10px;">
           <button class="debug-copy-btn" style="
-            padding: 5px 15px;
+            padding: 10px 20px;
             background: #0a0;
             color: white;
-            border: 1px solid #0f0;
-            border-radius: 4px;
+            border: 2px solid #0f0;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0, 255, 0, 0.3);
           ">📋 Copy All</button>
           <button class="debug-clear-btn" style="
-            padding: 5px 15px;
+            padding: 10px 20px;
             background: #a00;
             color: white;
-            border: 1px solid #f00;
-            border-radius: 4px;
+            border: 2px solid #f00;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(255, 0, 0, 0.3);
           ">🗑️ Clear</button>
           <button class="debug-close-btn" style="
-            padding: 5px 15px;
+            padding: 10px 20px;
             background: #444;
             color: white;
-            border: 1px solid #666;
-            border-radius: 4px;
+            border: 2px solid #666;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(255, 255, 255, 0.3);
           ">✕ Close</button>
         </div>
       </div>
@@ -135,10 +144,40 @@ export class DebugLogPanel {
       "></div>
     `;
 
-    // Setup event listeners
-    panel.querySelector('.debug-copy-btn')!.addEventListener('click', () => this.copyLogs());
-    panel.querySelector('.debug-clear-btn')!.addEventListener('click', () => this.clearLogs());
-    panel.querySelector('.debug-close-btn')!.addEventListener('click', () => this.hide());
+    // Setup event listeners (both click and touch)
+    const copyBtn = panel.querySelector('.debug-copy-btn')!;
+    const clearBtn = panel.querySelector('.debug-clear-btn')!;
+    const closeBtn = panel.querySelector('.debug-close-btn')!;
+
+    // Copy button
+    copyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.copyLogs();
+    });
+    copyBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.copyLogs();
+    });
+
+    // Clear button
+    clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.clearLogs();
+    });
+    clearBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.clearLogs();
+    });
+
+    // Close button
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.hide();
+    });
+    closeBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.hide();
+    });
 
     return panel;
   }
@@ -200,7 +239,9 @@ export class DebugLogPanel {
    * Copy all logs to clipboard
    */
   private async copyLogs(): Promise<void> {
+    console.log('[DebugLogPanel] Copy button clicked!');
     const allLogs = this.logs.join('\n');
+    console.log(`[DebugLogPanel] Preparing to copy ${this.logs.length} log entries`);
 
     try {
       // Create a textarea for manual selection (works best on iOS/iPad)
@@ -211,18 +252,20 @@ export class DebugLogPanel {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 80%;
-        height: 60%;
+        width: 85%;
+        height: 65%;
         padding: 20px;
         background: white;
         color: black;
-        border: 3px solid #0f0;
-        border-radius: 8px;
+        border: 4px solid #0f0;
+        border-radius: 12px;
         z-index: 20000;
         font-family: monospace;
-        font-size: 14px;
+        font-size: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        touch-action: manipulation;
       `;
-      textarea.readOnly = true;
+      textarea.readOnly = false; // Allow selection and copy
 
       // Add overlay
       const overlay = document.createElement('div');
@@ -262,15 +305,18 @@ export class DebugLogPanel {
         top: 50%;
         left: 50%;
         transform: translate(-50%, 180%);
-        padding: 15px 30px;
+        padding: 20px 40px;
         background: #a00;
         color: white;
-        border: 2px solid #f00;
-        border-radius: 8px;
-        font-size: 16px;
+        border: 3px solid #f00;
+        border-radius: 12px;
+        font-size: 20px;
         font-weight: bold;
         z-index: 20001;
         cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(255, 0, 0, 0.3);
+        min-height: 60px;
       `;
 
       const cleanup = () => {
@@ -280,8 +326,24 @@ export class DebugLogPanel {
         document.body.removeChild(closeBtn);
       };
 
-      closeBtn.addEventListener('click', cleanup);
-      overlay.addEventListener('click', cleanup);
+      // Support both click and touch events
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        cleanup();
+      });
+      closeBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        cleanup();
+      });
+
+      overlay.addEventListener('click', (e) => {
+        e.preventDefault();
+        cleanup();
+      });
+      overlay.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        cleanup();
+      });
 
       document.body.appendChild(overlay);
       document.body.appendChild(textarea);
