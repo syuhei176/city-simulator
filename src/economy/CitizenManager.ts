@@ -62,8 +62,6 @@ export class CitizenManager {
    * Main citizen update logic
    */
   private updateCitizens(): void {
-    console.log(`[CitizenManager] Update cycle - Current citizens: ${this.citizens.size}`);
-
     // 1. Sync citizens with residential buildings
     this.syncCitizensWithHousing();
 
@@ -82,7 +80,6 @@ export class CitizenManager {
    */
   private syncCitizensWithHousing(): void {
     const residentialBuildings = this.getResidentialBuildings();
-    console.log(`[CitizenManager] Found ${residentialBuildings.length} residential buildings`);
 
     for (const cell of residentialBuildings) {
       const location = { x: cell.x, y: cell.y };
@@ -123,7 +120,6 @@ export class CitizenManager {
     const unemployedCitizens = Array.from(this.citizens.values()).filter(
       (c) => c.needsJob()
     );
-    console.log(`[CitizenManager] Job matching - Available jobs: ${jobOffers.length}, Unemployed: ${unemployedCitizens.length}`);
 
     // Simple matching: assign closest jobs first
     for (const citizen of unemployedCitizens) {
