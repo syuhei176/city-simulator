@@ -79,6 +79,9 @@ export class TrafficSimulator {
     this.updateTrafficDensity();
   }
 
+  // Track spawn attempts
+  private spawnAttempts: number = 0;
+
   /**
    * Spawn a vehicle at random locations
    */
@@ -94,15 +97,28 @@ export class TrafficSimulator {
     const startNode = nodes[Math.floor(Math.random() * nodes.length)];
     const endNode = nodes[Math.floor(Math.random() * nodes.length)];
 
+    this.spawnAttempts++;
+
     if (startNode.id === endNode.id) {
-      console.log(`[Vehicle Spawn] Cannot spawn: start and end nodes are the same (${startNode.id})`);
+      if (this.spawnAttempts <= 3) {
+        console.log(`[Vehicle Spawn] Cannot spawn: start and end nodes are the same (${startNode.id})`);
+      }
       return;
+    }
+
+    // Log first few spawn attempts with full details
+    if (this.spawnAttempts <= 3) {
+      console.log(`[Vehicle Spawn] Attempt #${this.spawnAttempts}: ${startNode.id} -> ${endNode.id}`);
+      console.log(`  Start node connections (${startNode.connections.length}):`, startNode.connections.join(', '));
+      console.log(`  End node connections (${endNode.connections.length}):`, endNode.connections.join(', '));
     }
 
     // Find path
     const path = this.pathFinding.findPathBetweenNodes(startNode.id, endNode.id);
     if (!path.exists) {
-      console.log(`[Vehicle Spawn] Cannot spawn: no path found from ${startNode.id} to ${endNode.id}`);
+      if (this.spawnAttempts <= 3) {
+        console.log(`[Vehicle Spawn] Cannot spawn: no path found from ${startNode.id} to ${endNode.id}`);
+      }
       return;
     }
 

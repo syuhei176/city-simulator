@@ -203,24 +203,109 @@ export class DebugLogPanel {
     const allLogs = this.logs.join('\n');
 
     try {
-      // Try using the Clipboard API (works on modern browsers)
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(allLogs);
-        this.showCopyFeedback('✓ Copied!');
-      } else {
-        // Fallback for older browsers/iOS
-        const textarea = document.createElement('textarea');
-        textarea.value = allLogs;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
+      // Create a textarea for manual selection (works best on iOS/iPad)
+      const textarea = document.createElement('textarea');
+      textarea.value = allLogs;
+      textarea.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 60%;
+        padding: 20px;
+        background: white;
+        color: black;
+        border: 3px solid #0f0;
+        border-radius: 8px;
+        z-index: 20000;
+        font-family: monospace;
+        font-size: 14px;
+      `;
+      textarea.readOnly = true;
+
+      // Add overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 19999;
+      `;
+
+      // Add instructions
+      const instructions = document.createElement('div');
+      instructions.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -120%);
+        background: #0a0;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 20001;
+        font-family: sans-serif;
+        font-weight: bold;
+        text-align: center;
+      `;
+      instructions.textContent = 'タップして全選択→コピーしてください';
+
+      // Add close button
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '✕ 閉じる';
+      closeBtn.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, 180%);
+        padding: 15px 30px;
+        background: #a00;
+        color: white;
+        border: 2px solid #f00;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 20001;
+        cursor: pointer;
+      `;
+
+      const cleanup = () => {
         document.body.removeChild(textarea);
-        this.showCopyFeedback('✓ Copied!');
+        document.body.removeChild(overlay);
+        document.body.removeChild(instructions);
+        document.body.removeChild(closeBtn);
+      };
+
+      closeBtn.addEventListener('click', cleanup);
+      overlay.addEventListener('click', cleanup);
+
+      document.body.appendChild(overlay);
+      document.body.appendChild(textarea);
+      document.body.appendChild(instructions);
+      document.body.appendChild(closeBtn);
+
+      // Auto-select text
+      textarea.focus();
+      textarea.select();
+
+      // Try clipboard API as well
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(allLogs);
+          instructions.textContent = '✓ クリップボードにコピーしました！';
+          instructions.style.background = '#0a0';
+        }
+      } catch (clipErr) {
+        // Clipboard API failed, user needs to manually copy
+        console.log('Clipboard API not available, showing manual copy UI');
       }
+
     } catch (err) {
-      console.error('Failed to copy logs:', err);
+      console.error('Failed to show copy UI:', err);
       this.showCopyFeedback('✗ Copy failed');
     }
   }
