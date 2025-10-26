@@ -129,6 +129,11 @@ class CitySimulator {
     // Create Debug Log Panel
     this.debugLogPanel = new DebugLogPanel(hudContainer);
 
+    // Connect panels to HUD
+    this.hud.setStatsPanel(this.statsPanel);
+    this.hud.setSaveLoadPanel(this.saveLoadPanel);
+    this.hud.setDebugLogPanel(this.debugLogPanel);
+
     // Setup autosave (every 5 minutes)
     this.autoSaveInterval = window.setInterval(() => {
       SaveLoadManager.save(this.engine, 'autosave');

@@ -67,6 +67,8 @@ export class StatsPanel {
       flex-direction: column;
       font-family: monospace;
       z-index: 1000;
+      touch-action: manipulation;
+      -webkit-overflow-scrolling: touch;
     `;
 
     // Style tabs
@@ -82,6 +84,8 @@ export class StatsPanel {
       padding: 20px;
       overflow-y: auto;
       max-height: 70vh;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     `;
 
     // Create tabs
@@ -110,20 +114,28 @@ export class StatsPanel {
       button.textContent = tab.label;
       button.style.cssText = `
         flex: 1;
-        padding: 15px;
+        padding: 15px 20px;
         background: none;
         color: #888;
         border: none;
         cursor: pointer;
         font-family: monospace;
-        font-size: 14px;
+        font-size: 16px;
         font-weight: bold;
         transition: all 0.2s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+        min-height: 50px;
       `;
 
-      button.addEventListener('click', () => {
+      // Handle both click and touch events
+      const handleTabClick = (e: Event) => {
+        e.preventDefault();
         this.setTab(tab.id);
-      });
+      };
+
+      button.addEventListener('click', handleTabClick);
+      button.addEventListener('touchend', handleTabClick);
 
       // Highlight active tab
       if (tab.id === this.currentTab) {
