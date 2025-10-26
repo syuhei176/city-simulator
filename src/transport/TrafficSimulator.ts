@@ -41,11 +41,6 @@ export class TrafficSimulator {
   update(): void {
     this.updateCounter++;
 
-    // Log every 100 updates to confirm update is being called
-    if (this.updateCounter % 100 === 0) {
-      console.log(`[Traffic Update] Update #${this.updateCounter}, vehicles: ${this.vehicles.size}, nodes: ${this.network.getAllNodes().length}`);
-    }
-
     // Update all vehicles
     const vehiclesToRemove: string[] = [];
 
@@ -121,11 +116,6 @@ export class TrafficSimulator {
     this.vehicles.set(vehicleId, vehicle);
     this.totalVehiclesSpawned++;
 
-    // Log first few commute vehicle spawns
-    if (this.totalVehiclesSpawned <= 10 || this.totalVehiclesSpawned % 50 === 0) {
-      console.log(`[TrafficSimulator] Commute vehicle created: ${vehicleId} from ${startNode.id} to ${endNode.id} (total: ${this.totalVehiclesSpawned}, current: ${this.vehicles.size})`);
-    }
-
     return vehicleId;
   }
 
@@ -152,12 +142,12 @@ export class TrafficSimulator {
       // Check traffic density
       const trafficDensity = cell.trafficDensity;
 
-      if (trafficDensity > 80) {
-        // Heavy traffic - slow down
-        vehicle.decelerate(0.03);
-      } else if (trafficDensity > 50) {
-        // Moderate traffic - maintain speed slightly slower
-        vehicle.decelerate(0.005);
+      if (trafficDensity > 60) {
+        // Heavy traffic - slow down significantly
+        vehicle.decelerate(0.04);
+      } else if (trafficDensity > 30) {
+        // Moderate traffic - slow down slightly
+        vehicle.decelerate(0.01);
       } else {
         // Light traffic - speed up more aggressively
         vehicle.accelerate(0.05);
@@ -221,8 +211,9 @@ export class TrafficSimulator {
       const [x, y] = key.split(',').map(Number);
       const cell = this.grid.getCell(x, y);
       if (cell && cell.isRoad()) {
-        // Scale density (5 vehicles = 100% congestion)
-        cell.trafficDensity = Math.min(100, (count / 5) * 100);
+        // Scale density (3 vehicles = 100% congestion)
+        // Lower threshold to make congestion more sensitive
+        cell.trafficDensity = Math.min(100, (count / 3) * 100);
       }
     }
 

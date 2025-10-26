@@ -205,7 +205,8 @@ export class CommuteManager {
       const toCell = this.grid.getCell(toX, toY);
 
       // Traffic density is based on commuter count (capped at 100)
-      const density = Math.min(100, count * 5);
+      // Increased multiplier to make congestion more sensitive to commuter count
+      const density = Math.min(100, count * 10);
 
       if (fromCell) {
         fromCell.trafficDensity = Math.max(fromCell.trafficDensity, density);
@@ -302,7 +303,7 @@ export class CommuteManager {
       data.push({
         edgeId,
         commuterCount: count,
-        congestionLevel: Math.min(100, count * 5),
+        congestionLevel: Math.min(100, count * 10),
       });
     }
 

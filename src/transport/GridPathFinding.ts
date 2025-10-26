@@ -65,7 +65,6 @@ export class GridPathFinding {
       iterations++;
 
       if (iterations > maxIterations) {
-        console.warn(`[GridPathFinding] Exceeded max iterations (${maxIterations})`);
         break;
       }
 
