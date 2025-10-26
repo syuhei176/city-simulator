@@ -40,7 +40,8 @@ export class CommuteManager {
   private isSimulating: boolean = false;
 
   private maxCommuteTime: number = 300; // Maximum allowed commute time in ticks
-  private congestionSlowdownFactor: number = 0.1; // How much congestion slows down commute
+  private congestionThreshold: number = 5; // Number of commuters before congestion starts
+  private maxCongestionSlowdown: number = 0.8; // Maximum speed reduction (80%)
 
   private stats: CommuteStats = {
     totalCommuters: 0,
@@ -131,34 +132,49 @@ export class CommuteManager {
     let activeCount = 0;
     const currentCongestion = new Map<string, number>();
 
+    // First pass: count commuters on each edge
     for (const commuter of this.commuters.values()) {
       if (commuter.state === CommuteState.COMMUTING) {
-        // Apply congestion slowdown
+        const edge = commuter.getCurrentEdge();
+        if (edge) {
+          const edgeId = `${edge.from}-${edge.to}`;
+          currentCongestion.set(edgeId, (currentCongestion.get(edgeId) || 0) + 1);
+        }
+      }
+    }
+
+    // Second pass: update commuters with congestion-adjusted speed
+    for (const commuter of this.commuters.values()) {
+      if (commuter.state === CommuteState.COMMUTING) {
+        // Calculate speed based on congestion
         const currentEdge = commuter.getCurrentEdge();
         if (currentEdge) {
           const edgeId = `${currentEdge.from}-${currentEdge.to}`;
-          const congestion = this.roadCongestion.get(edgeId) || 0;
-          const slowdown = Math.floor(congestion * this.congestionSlowdownFactor);
+          const congestionCount = currentCongestion.get(edgeId) || 0;
 
-          // Skip update based on congestion (simulates slower movement)
-          if (slowdown > 0 && Math.random() < slowdown / 10) {
-            commuter.commuteTime++;
-            activeCount++;
-            continue;
+          // Calculate speed reduction based on congestion
+          // Speed = baseSpeed * (1 - slowdownFactor)
+          // slowdownFactor increases with congestion
+          let slowdownFactor = 0;
+          if (congestionCount > this.congestionThreshold) {
+            const excessCongestion = congestionCount - this.congestionThreshold;
+            // Progressive slowdown: each additional commuter reduces speed
+            slowdownFactor = Math.min(
+              this.maxCongestionSlowdown,
+              (excessCongestion / 20) * this.maxCongestionSlowdown
+            );
           }
+
+          const adjustedSpeed = commuter.baseSpeed * (1 - slowdownFactor);
+          commuter.setSpeed(adjustedSpeed);
+        } else {
+          commuter.resetSpeed();
         }
 
         const isComplete = commuter.update();
 
         if (!isComplete) {
           activeCount++;
-
-          // Track current position for real-time congestion
-          const edge = commuter.getCurrentEdge();
-          if (edge) {
-            const edgeId = `${edge.from}-${edge.to}`;
-            currentCongestion.set(edgeId, (currentCongestion.get(edgeId) || 0) + 1);
-          }
         }
       }
     }
