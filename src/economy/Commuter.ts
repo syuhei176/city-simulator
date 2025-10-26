@@ -24,6 +24,8 @@ export class Commuter {
   public currentPathIndex: number;
   public commuteTime: number; // Actual time taken (in ticks)
   public maxCommuteTime: number; // Maximum allowed commute time
+  public baseSpeed: number; // Base movement speed (nodes per tick)
+  public currentSpeed: number; // Current speed (affected by congestion)
 
   constructor(
     citizenId: string,
@@ -39,6 +41,8 @@ export class Commuter {
     this.currentPathIndex = 0;
     this.commuteTime = 0;
     this.maxCommuteTime = maxCommuteTime;
+    this.baseSpeed = 0.5; // Default: 0.5 nodes per tick (2 ticks per node)
+    this.currentSpeed = this.baseSpeed;
   }
 
   /**
@@ -78,19 +82,31 @@ export class Commuter {
       return true;
     }
 
-    // Progress along the path
-    // Move faster through path based on total cost
-    // Higher cost = slower progress (more ticks needed)
-    const progressRate = Math.max(1, this.path.nodes.length / Math.max(1, this.path.totalCost));
-    this.currentPathIndex += progressRate;
+    // Progress along the path based on current speed
+    // Speed is affected by congestion (set by CommuteManager)
+    this.currentPathIndex += this.currentSpeed;
 
     // Check if reached destination
-    if (this.currentPathIndex >= this.path.nodes.length) {
+    if (this.currentPathIndex >= this.path.nodes.length - 1) {
       this.state = CommuteState.AT_WORK;
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Set current speed (for congestion simulation)
+   */
+  setSpeed(speed: number): void {
+    this.currentSpeed = Math.max(0, speed);
+  }
+
+  /**
+   * Reset speed to base speed
+   */
+  resetSpeed(): void {
+    this.currentSpeed = this.baseSpeed;
   }
 
   /**
@@ -101,13 +117,14 @@ export class Commuter {
       return null;
     }
 
-    if (this.currentPathIndex >= this.path.nodes.length - 1) {
+    const currentNodeIndex = Math.floor(this.currentPathIndex);
+    if (currentNodeIndex >= this.path.nodes.length - 1) {
       return null;
     }
 
     return {
-      from: this.path.nodes[this.currentPathIndex],
-      to: this.path.nodes[this.currentPathIndex + 1],
+      from: this.path.nodes[currentNodeIndex],
+      to: this.path.nodes[currentNodeIndex + 1],
     };
   }
 
