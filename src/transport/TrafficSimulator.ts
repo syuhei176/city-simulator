@@ -12,15 +12,15 @@ export class TrafficSimulator {
   private pathFinding: PathFinding;
   private vehicles: Map<string, Vehicle>;
   private nextVehicleId: number = 0;
-
-  // Simulation parameters
-  private spawnRate: number = 0.3; // Probability of spawning vehicle per tick
-  private maxVehicles: number = 100;
   private cellSize: number;
 
   // Statistics
   private totalVehiclesSpawned: number = 0;
   private totalVehiclesArrived: number = 0;
+  private arrivedVehicles: string[] = [];
+
+  // Debug counter for logging
+  private updateCounter: number = 0;
 
   constructor(
     grid: Grid,
@@ -35,9 +35,6 @@ export class TrafficSimulator {
     this.vehicles = new Map();
   }
 
-  // Debug counter for logging
-  private updateCounter: number = 0;
-
   /**
    * Update simulation
    */
@@ -47,11 +44,6 @@ export class TrafficSimulator {
     // Log every 100 updates to confirm update is being called
     if (this.updateCounter % 100 === 0) {
       console.log(`[Traffic Update] Update #${this.updateCounter}, vehicles: ${this.vehicles.size}, nodes: ${this.network.getAllNodes().length}`);
-    }
-
-    // Try to spawn new vehicles
-    if (Math.random() < this.spawnRate && this.vehicles.size < this.maxVehicles) {
-      this.spawnRandomVehicle();
     }
 
     // Update all vehicles
@@ -67,6 +59,7 @@ export class TrafficSimulator {
       if (vehicle.hasArrived()) {
         vehiclesToRemove.push(vehicle.id);
         this.totalVehiclesArrived++;
+        this.arrivedVehicles.push(vehicle.id);
       }
     }
 
@@ -79,55 +72,42 @@ export class TrafficSimulator {
     this.updateTrafficDensity();
   }
 
-  // Track spawn attempts
-  private spawnAttempts: number = 0;
-
   /**
-   * Spawn a vehicle at random locations
+   * Create and add a vehicle to the simulation (for commute)
    */
-  private spawnRandomVehicle(): void {
+  createCommuteVehicle(
+    start: { x: number; y: number },
+    end: { x: number; y: number }
+  ): string | null {
     // Use only connected nodes to ensure path exists
     const nodes = this.network.getConnectedNodes();
     if (nodes.length < 2) {
-      // Log every time to understand the issue
-      console.log(`[Vehicle Spawn] Cannot spawn: insufficient connected road nodes (${nodes.length} nodes, need at least 2)`);
-      return;
+      return null;
     }
 
-    // Pick random start and end nodes
-    const startNode = nodes[Math.floor(Math.random() * nodes.length)];
-    const endNode = nodes[Math.floor(Math.random() * nodes.length)];
+    // Find nearest road nodes to start and end positions
+    const startNode = this.pathFinding.findNearestRoadNode(start);
+    const endNode = this.pathFinding.findNearestRoadNode(end);
 
-    this.spawnAttempts++;
+    if (!startNode || !endNode) {
+      return null;
+    }
 
     if (startNode.id === endNode.id) {
-      if (this.spawnAttempts <= 3) {
-        console.log(`[Vehicle Spawn] Cannot spawn: start and end nodes are the same (${startNode.id})`);
-      }
-      return;
-    }
-
-    // Log first few spawn attempts with full details
-    if (this.spawnAttempts <= 5) {
-      console.log(`[Vehicle Spawn] Attempt #${this.spawnAttempts}: ${startNode.id} -> ${endNode.id} (from ${nodes.length} connected nodes)`);
-      console.log(`  Start node connections (${startNode.connections.length}):`, startNode.connections.join(', '));
-      console.log(`  End node connections (${endNode.connections.length}):`, endNode.connections.join(', '));
+      return null;
     }
 
     // Find path
     const path = this.pathFinding.findPathBetweenNodes(startNode.id, endNode.id);
     if (!path.exists) {
-      if (this.spawnAttempts <= 3) {
-        console.log(`[Vehicle Spawn] Cannot spawn: no path found from ${startNode.id} to ${endNode.id}`);
-      }
-      return;
+      return null;
     }
 
     // Create vehicle
-    const vehicleType = this.getRandomVehicleType();
+    const vehicleId = `commute_${this.nextVehicleId++}`;
     const vehicle = new Vehicle(
-      `v${this.nextVehicleId++}`,
-      vehicleType,
+      vehicleId,
+      VehicleType.CAR,
       startNode.position,
       endNode.position
     );
@@ -138,23 +118,15 @@ export class TrafficSimulator {
     const initialSpeedRatio = 0.5 + Math.random() * 0.2; // 50-70%
     vehicle.speed = vehicle.maxSpeed * initialSpeedRatio;
 
-    this.vehicles.set(vehicle.id, vehicle);
+    this.vehicles.set(vehicleId, vehicle);
     this.totalVehiclesSpawned++;
 
-    // Log first few vehicle spawns
-    if (this.totalVehiclesSpawned <= 3) {
-      console.log(`Vehicle spawned: ${vehicle.id} at speed ${vehicle.speed.toFixed(2)} (total: ${this.totalVehiclesSpawned})`);
+    // Log first few commute vehicle spawns
+    if (this.totalVehiclesSpawned <= 10 || this.totalVehiclesSpawned % 50 === 0) {
+      console.log(`[TrafficSimulator] Commute vehicle created: ${vehicleId} from ${startNode.id} to ${endNode.id} (total: ${this.totalVehiclesSpawned}, current: ${this.vehicles.size})`);
     }
-  }
 
-  /**
-   * Get random vehicle type
-   */
-  private getRandomVehicleType(): VehicleType {
-    const rand = Math.random();
-    if (rand < 0.7) return VehicleType.CAR;
-    if (rand < 0.9) return VehicleType.BUS;
-    return VehicleType.TRUCK;
+    return vehicleId;
   }
 
   /**
@@ -329,17 +301,19 @@ export class TrafficSimulator {
   }
 
   /**
-   * Set spawn rate
+   * Get and clear arrived vehicles (for commute tracking)
    */
-  setSpawnRate(rate: number): void {
-    this.spawnRate = Math.max(0, Math.min(1, rate));
+  getAndClearArrivedVehicles(): string[] {
+    const arrived = [...this.arrivedVehicles];
+    this.arrivedVehicles = [];
+    return arrived;
   }
 
   /**
-   * Set max vehicles
+   * Check if a vehicle exists
    */
-  setMaxVehicles(max: number): void {
-    this.maxVehicles = Math.max(0, max);
+  hasVehicle(vehicleId: string): boolean {
+    return this.vehicles.has(vehicleId);
   }
 
   /**

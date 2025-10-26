@@ -3,7 +3,7 @@
  */
 
 import { Position } from '@/core/types';
-import { AgeGroup, EmploymentStatus, CitizenData } from './types';
+import { AgeGroup, EmploymentStatus, CitizenData, CommuteState } from './types';
 
 /**
  * Represents a single citizen in the city
@@ -16,6 +16,8 @@ export class Citizen {
   public workLocation: Position | null;
   public income: number;
   public satisfaction: number;
+  public commuteState: CommuteState;
+  public vehicleId: string | null;
 
   private static nextId = 0;
 
@@ -32,6 +34,8 @@ export class Citizen {
     this.workLocation = null;
     this.income = 0;
     this.satisfaction = 50; // Start neutral
+    this.commuteState = CommuteState.AT_HOME;
+    this.vehicleId = null;
   }
 
   /**
@@ -134,6 +138,49 @@ export class Citizen {
    */
   needsHome(): boolean {
     return this.homeLocation === null;
+  }
+
+  /**
+   * Check if citizen should commute (has both home and work)
+   */
+  canCommute(): boolean {
+    return (
+      this.homeLocation !== null &&
+      this.workLocation !== null &&
+      this.employmentStatus === EmploymentStatus.EMPLOYED
+    );
+  }
+
+  /**
+   * Start commute to work
+   */
+  startCommuteToWork(vehicleId: string): void {
+    this.commuteState = CommuteState.COMMUTING_TO_WORK;
+    this.vehicleId = vehicleId;
+  }
+
+  /**
+   * Arrive at work
+   */
+  arriveAtWork(): void {
+    this.commuteState = CommuteState.AT_WORK;
+    this.vehicleId = null;
+  }
+
+  /**
+   * Start commute to home
+   */
+  startCommuteToHome(vehicleId: string): void {
+    this.commuteState = CommuteState.COMMUTING_TO_HOME;
+    this.vehicleId = vehicleId;
+  }
+
+  /**
+   * Arrive at home
+   */
+  arriveAtHome(): void {
+    this.commuteState = CommuteState.AT_HOME;
+    this.vehicleId = null;
   }
 
   /**

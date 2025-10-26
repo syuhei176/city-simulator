@@ -23,6 +23,16 @@ export enum EmploymentStatus {
 }
 
 /**
+ * Commute state for tracking citizen movement
+ */
+export enum CommuteState {
+  AT_HOME = 'at_home',
+  COMMUTING_TO_WORK = 'commuting_to_work',
+  AT_WORK = 'at_work',
+  COMMUTING_TO_HOME = 'commuting_to_home',
+}
+
+/**
  * Citizen data
  */
 export interface CitizenData {
