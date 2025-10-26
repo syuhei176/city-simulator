@@ -121,10 +121,18 @@ export class GridPathFinding {
         }
 
         if (movementCost === Infinity) {
+          if (iterations === 1) {
+            console.log(`[GridPathFinding] Neighbor ${neighborId} has infinite cost, skipping`);
+          }
           continue; // Impassable
         }
 
         const tentativeGScore = (gScore.get(currentId) || Infinity) + movementCost;
+
+        if (iterations === 1 && neighbor === neighbors[0]) {
+          console.log(`[GridPathFinding] tentativeGScore: ${tentativeGScore}, current gScore for neighbor: ${gScore.get(neighborId) || Infinity}`);
+          console.log(`[GridPathFinding] Should add to openSet: ${tentativeGScore < (gScore.get(neighborId) || Infinity)}`);
+        }
 
         if (tentativeGScore < (gScore.get(neighborId) || Infinity)) {
           // This path is better
@@ -134,7 +142,15 @@ export class GridPathFinding {
           const f = tentativeGScore + h;
           fScore.set(neighborId, f);
 
+          if (iterations === 1 && neighbor === neighbors[0]) {
+            console.log(`[GridPathFinding] Adding neighbor to openSet with f=${f}, h=${h}`);
+          }
+
           openSet.enqueue(neighborId, f);
+
+          if (iterations === 1 && neighbor === neighbors[0]) {
+            console.log(`[GridPathFinding] After enqueue, openSet size: ${openSet.size()}`);
+          }
         }
       }
 
