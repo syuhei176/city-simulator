@@ -69,6 +69,11 @@ export class CommuteManager {
   update(): void {
     this.ticksSinceSimulation++;
 
+    // Log every 60 ticks to show we're being called
+    if (this.ticksSinceSimulation % 60 === 0) {
+      console.log(`[CommuteManager] Update tick ${this.ticksSinceSimulation}/${this.simulationInterval}, isSimulating: ${this.isSimulating}`);
+    }
+
     if (this.isSimulating) {
       this.updateCommuters();
     } else if (this.ticksSinceSimulation >= this.simulationInterval) {
@@ -81,12 +86,19 @@ export class CommuteManager {
    * Start a new commute simulation cycle
    */
   private startCommuteSimulation(): void {
+    console.log(`[CommuteManager] Starting commute simulation cycle`);
+
     this.commuters.clear();
     this.roadCongestion.clear();
     this.isSimulating = true;
 
     // Create commuters for all employed citizens
     const citizens = this.citizenManager.getCitizens();
+    console.log(`[CommuteManager] Total citizens: ${citizens.length}`);
+
+    let employedCount = 0;
+    let pathFoundCount = 0;
+    let pathFailedCount = 0;
 
     for (const citizen of citizens) {
       if (
@@ -94,6 +106,8 @@ export class CommuteManager {
         citizen.homeLocation &&
         citizen.workLocation
       ) {
+        employedCount++;
+
         const commuter = new Commuter(
           citizen.id,
           citizen.homeLocation,
@@ -101,25 +115,35 @@ export class CommuteManager {
           this.maxCommuteTime
         );
 
-        // Find path from home to work
+        // Find path from home to work using GridPathFinding
+        console.log(`[CommuteManager] Finding path for ${citizen.id} from (${citizen.homeLocation.x},${citizen.homeLocation.y}) to (${citizen.workLocation.x},${citizen.workLocation.y})`);
+
         const path = this.pathFinding.findPath(
           citizen.homeLocation,
           citizen.workLocation
         );
 
         if (path.exists) {
+          pathFoundCount++;
           commuter.startCommute(path);
           this.commuters.set(citizen.id, commuter);
 
           // Track road usage for congestion calculation
           this.trackRoadUsage(path.nodes);
         } else {
+          pathFailedCount++;
           // No path available - immediate failure
           commuter.state = CommuteState.FAILED;
           this.commuters.set(citizen.id, commuter);
         }
       }
     }
+
+    console.log(`[CommuteManager] Commute simulation started:`);
+    console.log(`  - Employed citizens: ${employedCount}`);
+    console.log(`  - Paths found: ${pathFoundCount}`);
+    console.log(`  - Paths failed: ${pathFailedCount}`);
+    console.log(`  - Total commuters: ${this.commuters.size}`);
 
     this.updateStats();
   }
