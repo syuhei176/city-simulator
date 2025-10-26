@@ -6,8 +6,9 @@ import { Grid } from '@/core/Grid';
 import { Cell } from '@/core/Cell';
 import { ZoneType } from '@/core/types';
 import { Citizen } from './Citizen';
-import { JobOffer, EmploymentStatus } from './types';
+import { JobOffer, EmploymentStatus, CommuteState } from './types';
 import { BUILDING_PROPERTIES, BuildingStage } from '@/buildings/types';
+import { TrafficSimulator } from '@/transport/TrafficSimulator';
 
 /**
  * CitizenManager handles citizen creation, job matching, and commuting
@@ -15,12 +16,22 @@ import { BUILDING_PROPERTIES, BuildingStage } from '@/buildings/types';
 export class CitizenManager {
   private grid: Grid;
   private citizens: Map<string, Citizen>;
+  private trafficSimulator: TrafficSimulator | null = null;
   private updateInterval: number = 60; // Update every 60 ticks (about once per month)
   private ticksSinceUpdate: number = 0;
+  private commuteCheckInterval: number = 10; // Check commute every 10 ticks
+  private ticksSinceCommuteCheck: number = 0;
 
   constructor(grid: Grid) {
     this.grid = grid;
     this.citizens = new Map();
+  }
+
+  /**
+   * Set traffic simulator for commute vehicle creation
+   */
+  setTrafficSimulator(trafficSimulator: TrafficSimulator): void {
+    this.trafficSimulator = trafficSimulator;
   }
 
   /**
@@ -32,6 +43,13 @@ export class CitizenManager {
     if (this.ticksSinceUpdate >= this.updateInterval) {
       this.ticksSinceUpdate = 0;
       this.updateCitizens();
+    }
+
+    // Handle commutes
+    this.ticksSinceCommuteCheck++;
+    if (this.ticksSinceCommuteCheck >= this.commuteCheckInterval) {
+      this.ticksSinceCommuteCheck = 0;
+      this.handleCommutes();
     }
   }
 
@@ -221,6 +239,73 @@ export class CitizenManager {
    */
   getCitizens(): Citizen[] {
     return Array.from(this.citizens.values());
+  }
+
+  /**
+   * Handle citizen commutes
+   */
+  private handleCommutes(): void {
+    if (!this.trafficSimulator) return;
+
+    // Check for arrived vehicles and update citizen states
+    const arrivedVehicles = this.trafficSimulator.getAndClearArrivedVehicles();
+    for (const vehicleId of arrivedVehicles) {
+      this.handleVehicleArrival(vehicleId);
+    }
+
+    // Create commute vehicles for citizens
+    const citizens = Array.from(this.citizens.values());
+
+    // Limit commute creation to avoid overwhelming the system
+    let commutesCreated = 0;
+    const maxCommutesPerTick = 5;
+
+    for (const citizen of citizens) {
+      if (commutesCreated >= maxCommutesPerTick) break;
+      if (!citizen.canCommute()) continue;
+
+      // Citizens at home should go to work
+      if (citizen.commuteState === CommuteState.AT_HOME && citizen.homeLocation && citizen.workLocation) {
+        const vehicleId = this.trafficSimulator.createCommuteVehicle(
+          citizen.homeLocation,
+          citizen.workLocation
+        );
+
+        if (vehicleId) {
+          citizen.startCommuteToWork(vehicleId);
+          commutesCreated++;
+        }
+      }
+      // Citizens at work should go home
+      else if (citizen.commuteState === CommuteState.AT_WORK && citizen.workLocation && citizen.homeLocation) {
+        const vehicleId = this.trafficSimulator.createCommuteVehicle(
+          citizen.workLocation,
+          citizen.homeLocation
+        );
+
+        if (vehicleId) {
+          citizen.startCommuteToHome(vehicleId);
+          commutesCreated++;
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle vehicle arrival and update citizen state
+   */
+  private handleVehicleArrival(vehicleId: string): void {
+    // Find citizen with this vehicle
+    for (const citizen of this.citizens.values()) {
+      if (citizen.vehicleId === vehicleId) {
+        if (citizen.commuteState === CommuteState.COMMUTING_TO_WORK) {
+          citizen.arriveAtWork();
+        } else if (citizen.commuteState === CommuteState.COMMUTING_TO_HOME) {
+          citizen.arriveAtHome();
+        }
+        break;
+      }
+    }
   }
 
   /**

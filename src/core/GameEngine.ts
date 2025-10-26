@@ -104,6 +104,7 @@ export class GameEngine {
 
     // Initialize economy systems
     this.citizenManager = new CitizenManager(this.grid);
+    this.citizenManager.setTrafficSimulator(this.trafficSimulator);
     this.economyManager = new EconomyManager(this.grid, this.citizenManager, this.stats.money);
 
     // Initialize transit systems
