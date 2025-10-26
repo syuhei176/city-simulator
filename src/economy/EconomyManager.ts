@@ -12,10 +12,10 @@ import { CitizenManager } from './CitizenManager';
  * Road maintenance costs per road type (per tile per month)
  */
 const ROAD_MAINTENANCE_COSTS: Record<RoadType, number> = {
-  [RoadType.SMALL]: 2,
-  [RoadType.MEDIUM]: 4,
-  [RoadType.LARGE]: 6,
-  [RoadType.HIGHWAY]: 10,
+  [RoadType.SMALL]: 10,
+  [RoadType.MEDIUM]: 25,
+  [RoadType.LARGE]: 40,
+  [RoadType.HIGHWAY]: 80,
 };
 
 /**

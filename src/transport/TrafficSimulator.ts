@@ -19,6 +19,9 @@ export class TrafficSimulator {
   private totalVehiclesArrived: number = 0;
   private arrivedVehicles: string[] = [];
 
+  // Debug counter for logging
+  private updateCounter: number = 0;
+
   constructor(
     grid: Grid,
     network: RoadNetwork,
@@ -36,6 +39,13 @@ export class TrafficSimulator {
    * Update simulation
    */
   update(): void {
+    this.updateCounter++;
+
+    // Log every 100 updates to confirm update is being called
+    if (this.updateCounter % 100 === 0) {
+      console.log(`[Traffic Update] Update #${this.updateCounter}, vehicles: ${this.vehicles.size}, nodes: ${this.network.getAllNodes().length}`);
+    }
+
     // Update all vehicles
     const vehiclesToRemove: string[] = [];
 
@@ -69,7 +79,8 @@ export class TrafficSimulator {
     start: { x: number; y: number },
     end: { x: number; y: number }
   ): string | null {
-    const nodes = this.network.getAllNodes();
+    // Use only connected nodes to ensure path exists
+    const nodes = this.network.getConnectedNodes();
     if (nodes.length < 2) {
       return null;
     }
@@ -102,6 +113,11 @@ export class TrafficSimulator {
     );
 
     vehicle.setPath(path);
+
+    // Set initial speed to a reasonable value (50-70% of max speed)
+    const initialSpeedRatio = 0.5 + Math.random() * 0.2; // 50-70%
+    vehicle.speed = vehicle.maxSpeed * initialSpeedRatio;
+
     this.vehicles.set(vehicleId, vehicle);
     this.totalVehiclesSpawned++;
 
@@ -140,11 +156,11 @@ export class TrafficSimulator {
         // Heavy traffic - slow down
         vehicle.decelerate(0.03);
       } else if (trafficDensity > 50) {
-        // Moderate traffic - maintain speed
-        vehicle.decelerate(0.01);
+        // Moderate traffic - maintain speed slightly slower
+        vehicle.decelerate(0.005);
       } else {
-        // Light traffic - speed up
-        vehicle.accelerate(0.02);
+        // Light traffic - speed up more aggressively
+        vehicle.accelerate(0.05);
       }
     }
   }

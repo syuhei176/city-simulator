@@ -1,5 +1,6 @@
 import { GameEngine } from '@/core/GameEngine';
 import { ToolType } from './InputHandler';
+import type { StatsPanel } from './StatsPanel';
 
 /**
  * Heads-Up Display for game information
@@ -8,15 +9,41 @@ export class HUD {
   private container: HTMLElement;
   private statsElement: HTMLElement;
   private toolbarElement: HTMLElement;
+  private actionButtonsElement: HTMLElement;
   private currentToolCallback?: (tool: ToolType) => void;
   private isStatsCollapsed: boolean = false;
   private expandedSections: Set<string> = new Set(['finance', 'population']);
+  private statsPanel?: StatsPanel;
+  private saveLoadPanel?: any;
+  private debugLogPanel?: any;
 
   constructor(container: HTMLElement) {
     this.container = container;
     this.statsElement = document.createElement('div');
     this.toolbarElement = document.createElement('div');
+    this.actionButtonsElement = document.createElement('div');
     this.init();
+  }
+
+  /**
+   * Set stats panel reference
+   */
+  setStatsPanel(statsPanel: StatsPanel): void {
+    this.statsPanel = statsPanel;
+  }
+
+  /**
+   * Set save/load panel reference
+   */
+  setSaveLoadPanel(saveLoadPanel: any): void {
+    this.saveLoadPanel = saveLoadPanel;
+  }
+
+  /**
+   * Set debug log panel reference
+   */
+  setDebugLogPanel(debugLogPanel: any): void {
+    this.debugLogPanel = debugLogPanel;
   }
 
   /**
@@ -57,7 +84,20 @@ export class HUD {
     `;
     this.container.appendChild(this.toolbarElement);
 
+    // Action buttons (top right)
+    this.actionButtonsElement.id = 'action-buttons';
+    this.actionButtonsElement.style.cssText = `
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    `;
+    this.container.appendChild(this.actionButtonsElement);
+
     this.createToolbar();
+    this.createActionButtons();
   }
 
   /**
@@ -379,6 +419,60 @@ export class HUD {
       return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
+  }
+
+  /**
+   * Create action buttons (stats, save/load, debug)
+   */
+  private createActionButtons(): void {
+    const buttons = [
+      { label: '📊', title: '統計 [G]', action: () => this.statsPanel?.toggle() },
+      { label: '💾', title: 'セーブ/ロード [L]', action: () => this.saveLoadPanel?.toggle() },
+      { label: '🐛', title: 'デバッグ [Shift+D]', action: () => this.debugLogPanel?.toggle() },
+    ];
+
+    buttons.forEach((btnConfig) => {
+      const button = document.createElement('button');
+      button.textContent = btnConfig.label;
+      button.title = btnConfig.title;
+      button.style.cssText = `
+        padding: 12px 16px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border: 2px solid #555;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 20px;
+        min-width: 50px;
+        min-height: 50px;
+        transition: all 0.2s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+      `;
+
+      // Hover effects
+      button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(255, 255, 255, 0.2)';
+        button.style.borderColor = '#777';
+      });
+
+      button.addEventListener('mouseleave', () => {
+        button.style.background = 'rgba(0, 0, 0, 0.8)';
+        button.style.borderColor = '#555';
+      });
+
+      // Handle both click and touch events
+      const handleClick = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        btnConfig.action();
+      };
+
+      button.addEventListener('click', handleClick);
+      button.addEventListener('touchend', handleClick);
+
+      this.actionButtonsElement.appendChild(button);
+    });
   }
 
   /**

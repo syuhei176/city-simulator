@@ -8,6 +8,7 @@ import { BuildingManager } from '@/buildings/BuildingManager';
 import { DemandCalculator } from '@/buildings/DemandCalculator';
 import { CitizenManager } from '@/economy/CitizenManager';
 import { EconomyManager } from '@/economy/EconomyManager';
+import { CommuteManager } from '@/economy/CommuteManager';
 import { TransitManager } from '@/transit/TransitManager';
 import { HistoricalDataCollector } from '@/analytics/HistoricalDataCollector';
 
@@ -39,6 +40,7 @@ export class GameEngine {
   // Economy systems
   private citizenManager: CitizenManager;
   private economyManager: EconomyManager;
+  private commuteManager: CommuteManager;
 
   // Transit systems
   private transitManager: TransitManager;
@@ -80,6 +82,11 @@ export class GameEngine {
     transitPassengers: 0,
     transitRidership: 0,
     transitCoverage: 0,
+    // Commute stats
+    totalCommuters: 0,
+    activeCommuters: 0,
+    failedCommuters: 0,
+    averageCommuteTime: 0,
   };
 
   constructor(config: GameConfig) {
@@ -106,12 +113,16 @@ export class GameEngine {
     this.citizenManager = new CitizenManager(this.grid);
     this.citizenManager.setTrafficSimulator(this.trafficSimulator);
     this.economyManager = new EconomyManager(this.grid, this.citizenManager, this.stats.money);
+    this.commuteManager = new CommuteManager(this.grid, this.roadNetwork, this.citizenManager);
 
     // Initialize transit systems
     this.transitManager = new TransitManager(this.grid);
 
     // Initialize analytics systems
     this.historicalDataCollector = new HistoricalDataCollector(200, 10);
+
+    // Connect building manager to citizen manager for abandonment checks
+    this.buildingManager.setCitizenManager(this.citizenManager);
 
     // Build initial road network
     this.roadNetwork.buildFromGrid();
@@ -186,6 +197,13 @@ export class GameEngine {
    */
   getEconomyManager(): EconomyManager {
     return this.economyManager;
+  }
+
+  /**
+   * Get commute manager
+   */
+  getCommuteManager(): CommuteManager {
+    return this.commuteManager;
   }
 
   /**
@@ -292,6 +310,7 @@ export class GameEngine {
     // Update economy systems
     this.citizenManager.update();
     this.economyManager.update();
+    this.commuteManager.update();
 
     // Update transit systems
     this.transitManager.update();
@@ -360,6 +379,13 @@ export class GameEngine {
     this.stats.transitPassengers = transitStats.totalPassengers;
     this.stats.transitRidership = transitStats.ridership;
     this.stats.transitCoverage = Math.round(transitStats.coverage);
+
+    // Commute statistics
+    const commuteStats = this.commuteManager.getStats();
+    this.stats.totalCommuters = commuteStats.totalCommuters;
+    this.stats.activeCommuters = commuteStats.activeCommuters;
+    this.stats.failedCommuters = commuteStats.failedCommuters;
+    this.stats.averageCommuteTime = Math.round(commuteStats.averageCommuteTime);
   }
 
   /**

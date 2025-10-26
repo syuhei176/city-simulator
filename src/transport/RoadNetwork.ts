@@ -11,6 +11,7 @@ export class RoadNetwork {
   private nodes: Map<string, RoadNode>;
   private edges: Map<string, RoadEdge>;
   private grid: Grid;
+  private largestComponent: Set<string> = new Set(); // Largest connected component
 
   constructor(grid: Grid) {
     this.grid = grid;
@@ -26,6 +27,7 @@ export class RoadNetwork {
     this.edges.clear();
 
     const roadCells = this.grid.getRoadCells();
+    console.log(`[Road Network] Building from ${roadCells.length} road cells`);
 
     // Create nodes for each road cell
     for (const cell of roadCells) {
@@ -38,8 +40,94 @@ export class RoadNetwork {
     }
 
     console.log(
-      `Road network built: ${this.nodes.size} nodes, ${this.edges.size} edges`
+      `[Road Network] Built: ${this.nodes.size} nodes, ${this.edges.size} edges`
     );
+
+    // Log first few nodes for debugging
+    if (this.nodes.size > 0 && this.nodes.size <= 10) {
+      console.log(`[Road Network] Node IDs:`, Array.from(this.nodes.keys()));
+
+      // Show connections for first few nodes
+      const nodeArray = Array.from(this.nodes.values());
+      for (let i = 0; i < Math.min(5, nodeArray.length); i++) {
+        const node = nodeArray[i];
+        console.log(`  Node ${node.id}: ${node.connections.length} connections ->`, node.connections.join(', '));
+      }
+    }
+
+    // Check for isolated nodes (nodes with no connections)
+    const isolatedNodes = Array.from(this.nodes.values()).filter(n => n.connections.length === 0);
+    if (isolatedNodes.length > 0) {
+      console.warn(`[Road Network] Warning: ${isolatedNodes.length} isolated nodes (no connections)`);
+      if (isolatedNodes.length <= 5) {
+        console.warn(`  Isolated nodes:`, isolatedNodes.map(n => n.id).join(', '));
+      }
+    }
+
+    // Find connected components
+    this.findConnectedComponents();
+  }
+
+  /**
+   * Find connected components using DFS and identify the largest one
+   */
+  private findConnectedComponents(): void {
+    const visited = new Set<string>();
+    const components: string[][] = [];
+
+    // DFS to find all nodes in a component
+    const dfs = (nodeId: string, component: string[]) => {
+      visited.add(nodeId);
+      component.push(nodeId);
+
+      const node = this.nodes.get(nodeId);
+      if (!node) return;
+
+      for (const neighborId of node.connections) {
+        if (!visited.has(neighborId)) {
+          dfs(neighborId, component);
+        }
+      }
+    };
+
+    // Find all connected components
+    for (const nodeId of this.nodes.keys()) {
+      if (!visited.has(nodeId)) {
+        const component: string[] = [];
+        dfs(nodeId, component);
+        components.push(component);
+      }
+    }
+
+    // Find the largest component
+    let largest: string[] = [];
+    for (const component of components) {
+      if (component.length > largest.length) {
+        largest = component;
+      }
+    }
+
+    this.largestComponent = new Set(largest);
+
+    console.log(`[Road Network] Found ${components.length} connected component(s)`);
+    if (components.length > 1) {
+      console.log(`  Component sizes:`, components.map(c => c.length).join(', '));
+      console.warn(`  Warning: Network is fragmented! Using largest component (${largest.length} nodes) for vehicle spawning`);
+    } else {
+      console.log(`  All ${this.nodes.size} nodes are connected ✓`);
+    }
+  }
+
+  /**
+   * Get nodes from the largest connected component
+   */
+  getConnectedNodes(): RoadNode[] {
+    if (this.largestComponent.size === 0) {
+      return this.getAllNodes();
+    }
+    return Array.from(this.largestComponent)
+      .map(id => this.nodes.get(id))
+      .filter((n): n is RoadNode => n !== undefined);
   }
 
   /**
@@ -95,42 +183,68 @@ export class RoadNetwork {
     fromCell: Cell,
     toX: number,
     toY: number,
-    _direction: string
+    direction: string
   ): void {
     const fromId = this.getCellNodeId(fromCell.x, fromCell.y);
     const toId = this.getCellNodeId(toX, toY);
 
-    // Avoid duplicate edges
-    const edgeId = `${fromId}-${toId}`;
-    if (this.edges.has(edgeId)) return;
-
     const toCell = this.grid.getCell(toX, toY);
-    if (!toCell || !toCell.isRoad()) return;
+    if (!toCell || !toCell.isRoad()) {
+      console.log(`[Edge Creation] Failed: toCell at (${toX},${toY}) is not a road`);
+      return;
+    }
+
+    // Create edge ID - use sorted IDs to avoid duplicates for bidirectional edges
+    const edgeId1 = `${fromId}-${toId}`;
+    const edgeId2 = `${toId}-${fromId}`;
+
+    // Check if edge already exists in either direction
+    if (this.edges.has(edgeId1) || this.edges.has(edgeId2)) {
+      return;
+    }
 
     const lanes = this.getLanesForRoadType(fromCell.roadType);
     const speedLimit = this.getSpeedLimitForRoadType(fromCell.roadType);
     const cost = this.calculateEdgeCost(fromCell, toCell);
 
-    const edge: RoadEdge = {
-      id: edgeId,
+    // Create edge in both directions for bidirectional roads
+    const edge1: RoadEdge = {
+      id: edgeId1,
       from: fromId,
       to: toId,
       cost,
       lanes,
       speedLimit,
-      bidirectional: true, // Most roads are bidirectional
+      bidirectional: true,
     };
 
-    this.edges.set(edgeId, edge);
+    const edge2: RoadEdge = {
+      id: edgeId2,
+      from: toId,
+      to: fromId,
+      cost,
+      lanes,
+      speedLimit,
+      bidirectional: true,
+    };
 
-    // Update node connections
+    this.edges.set(edgeId1, edge1);
+    this.edges.set(edgeId2, edge2);
+
+    // Update node connections (bidirectional)
     const fromNode = this.nodes.get(fromId);
     const toNode = this.nodes.get(toId);
+
     if (fromNode && !fromNode.connections.includes(toId)) {
       fromNode.connections.push(toId);
     }
     if (toNode && !toNode.connections.includes(fromId)) {
       toNode.connections.push(fromId);
+    }
+
+    // Log first few edge creations
+    if (this.edges.size <= 10) {
+      console.log(`[Edge Created] ${fromId} <-> ${toId} (${direction})`);
     }
   }
 
