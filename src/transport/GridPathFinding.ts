@@ -28,6 +28,7 @@ export class GridPathFinding {
     const endCell = this.grid.getCell(end.x, end.y);
 
     if (!startCell || !endCell) {
+      console.warn(`[GridPathFinding] Invalid cells - startCell: ${!!startCell}, endCell: ${!!endCell} at (${start.x},${start.y}) -> (${end.x},${end.y})`);
       return {
         nodes: [],
         totalCost: Infinity,
@@ -43,26 +44,38 @@ export class GridPathFinding {
    * A* algorithm implementation on grid
    */
   private aStar(start: Position, end: Position): Path {
-    console.log(`[GridPathFinding] Finding path from (${start.x},${start.y}) to (${end.x},${end.y})`);
+    try {
+      console.log(`[GridPathFinding] Finding path from (${start.x},${start.y}) to (${end.x},${end.y})`);
 
-    const openSet = new PriorityQueue<string>();
-    const cameFrom = new Map<string, string>();
-    const gScore = new Map<string, number>();
-    const fScore = new Map<string, number>();
+      const openSet = new PriorityQueue<string>();
+      const cameFrom = new Map<string, string>();
+      const gScore = new Map<string, number>();
+      const fScore = new Map<string, number>();
 
-    const startId = this.positionToId(start);
-    const endId = this.positionToId(end);
+      const startId = this.positionToId(start);
+      const endId = this.positionToId(end);
 
-    // Initialize
-    gScore.set(startId, 0);
-    fScore.set(startId, this.heuristic(start, end));
-    openSet.enqueue(startId, fScore.get(startId)!);
+      console.log(`[GridPathFinding] IDs created - start: ${startId}, end: ${endId}`);
 
-    let iterations = 0;
-    const maxIterations = 50000; // Increased for grid-based search
+      // Initialize
+      gScore.set(startId, 0);
+      const h = this.heuristic(start, end);
+      console.log(`[GridPathFinding] Heuristic calculated: ${h}`);
+      fScore.set(startId, h);
+      openSet.enqueue(startId, h);
+
+      let iterations = 0;
+      const maxIterations = 50000; // Increased for grid-based search
+
+      console.log(`[GridPathFinding] Starting A* search. OpenSet initial size check...`);
 
     while (!openSet.isEmpty()) {
       iterations++;
+
+      if (iterations === 1) {
+        console.log(`[GridPathFinding] First iteration started`);
+      }
+
       if (iterations > maxIterations) {
         console.warn(`[GridPathFinding] Exceeded max iterations (${maxIterations})`);
         break;
@@ -108,14 +121,23 @@ export class GridPathFinding {
       }
     }
 
-    // No path found
-    console.warn(`[GridPathFinding] No path found after ${iterations} iterations`);
-    return {
-      nodes: [],
-      totalCost: Infinity,
-      distance: 0,
-      exists: false,
-    };
+      // No path found
+      console.warn(`[GridPathFinding] No path found after ${iterations} iterations. OpenSet empty: ${openSet.isEmpty()}`);
+      return {
+        nodes: [],
+        totalCost: Infinity,
+        distance: 0,
+        exists: false,
+      };
+    } catch (error) {
+      console.error(`[GridPathFinding] Exception in aStar:`, error);
+      return {
+        nodes: [],
+        totalCost: Infinity,
+        distance: 0,
+        exists: false,
+      };
+    }
   }
 
   /**
