@@ -4,7 +4,7 @@
 
 import { Grid } from '@/core/Grid';
 import { RoadNetwork } from '@/transport/RoadNetwork';
-import { PathFinding } from '@/transport/PathFinding';
+import { GridPathFinding } from '@/transport/GridPathFinding';
 import { CitizenManager } from './CitizenManager';
 import { Commuter, CommuteState } from './Commuter';
 import { EmploymentStatus } from './types';
@@ -29,7 +29,7 @@ export interface RoadCongestionData {
  */
 export class CommuteManager {
   private grid: Grid;
-  private pathFinding: PathFinding;
+  private pathFinding: GridPathFinding;
   private citizenManager: CitizenManager;
 
   private commuters: Map<string, Commuter>; // citizenId -> Commuter
@@ -53,11 +53,11 @@ export class CommuteManager {
 
   constructor(
     grid: Grid,
-    roadNetwork: RoadNetwork,
+    _roadNetwork: RoadNetwork,  // Not used, kept for compatibility
     citizenManager: CitizenManager
   ) {
     this.grid = grid;
-    this.pathFinding = new PathFinding(roadNetwork);
+    this.pathFinding = new GridPathFinding(grid);
     this.citizenManager = citizenManager;
     this.commuters = new Map();
     this.roadCongestion = new Map();
