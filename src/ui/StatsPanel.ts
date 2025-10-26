@@ -390,6 +390,31 @@ export class StatsPanel {
 
     employmentChartContainer.appendChild(employmentCanvas);
     this.contentElement.appendChild(employmentChartContainer);
+
+    // Add commute statistics
+    const commuteStats = document.createElement('div');
+    commuteStats.innerHTML = `
+      <h3 style="margin-top: 20px; margin-bottom: 10px;">通勤統計</h3>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">総通勤者数:</span>
+        <span style="color: #00ff00; font-weight: bold; margin-left: 10px;">
+          ${this.historicalData.getLatestValue('totalCommuters') || 0}
+        </span>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">通勤失敗:</span>
+        <span style="color: #ff0000; font-weight: bold; margin-left: 10px;">
+          ${this.historicalData.getLatestValue('failedCommuters') || 0}
+        </span>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">平均通勤時間:</span>
+        <span style="color: #00ffff; font-weight: bold; margin-left: 10px;">
+          ${Math.round(this.historicalData.getLatestValue('averageCommuteTime') || 0)} ティック
+        </span>
+      </div>
+    `;
+    this.contentElement.appendChild(commuteStats);
   }
 
   /**
@@ -445,6 +470,25 @@ export class StatsPanel {
         <span style="color: #888;">混雑度:</span>
         <span style="color: #ff0000; font-weight: bold; margin-left: 10px;">
           ${Math.round(this.historicalData.getLatestValue('trafficCongestion') || 0)}%
+        </span>
+      </div>
+      <h3 style="margin-top: 20px; margin-bottom: 10px;">通勤状況</h3>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">現在通勤中:</span>
+        <span style="color: #00ffff; font-weight: bold; margin-left: 10px;">
+          ${this.historicalData.getLatestValue('activeCommuters') || 0}
+        </span>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">通勤失敗:</span>
+        <span style="color: #ff0000; font-weight: bold; margin-left: 10px;">
+          ${this.historicalData.getLatestValue('failedCommuters') || 0}
+        </span>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <span style="color: #888;">平均通勤時間:</span>
+        <span style="color: #888888; font-weight: bold; margin-left: 10px;">
+          ${Math.round(this.historicalData.getLatestValue('averageCommuteTime') || 0)} ティック
         </span>
       </div>
     `;

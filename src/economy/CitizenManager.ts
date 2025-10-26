@@ -18,6 +18,11 @@ export class CitizenManager {
   private updateInterval: number = 60; // Update every 60 ticks (about once per month)
   private ticksSinceUpdate: number = 0;
 
+  // Track unemployment duration for each citizen
+  private unemploymentDuration: Map<string, number> = new Map();
+  private maxUnemploymentDuration: number = 180; // 3 months (3 * 60 ticks)
+  private lowSatisfactionThreshold: number = 20; // Citizens below this may move away
+
   constructor(grid: Grid) {
     this.grid = grid;
     this.citizens = new Map();
@@ -45,7 +50,10 @@ export class CitizenManager {
     // 2. Match unemployed citizens with available jobs
     this.matchCitizensToJobs();
 
-    // 3. Remove citizens from demolished buildings
+    // 3. Track unemployment and handle emigration
+    this.updateUnemploymentAndEmigration();
+
+    // 4. Remove citizens from demolished buildings
     this.cleanupCitizens();
   }
 
@@ -126,6 +134,66 @@ export class CitizenManager {
           jobOffers.splice(index, 1);
         }
       }
+    }
+  }
+
+  /**
+   * Update unemployment duration and handle emigration
+   */
+  private updateUnemploymentAndEmigration(): void {
+    const citizensToRemove: string[] = [];
+
+    for (const [id, citizen] of this.citizens) {
+      // Track unemployment duration
+      if (citizen.employmentStatus === EmploymentStatus.UNEMPLOYED) {
+        const duration = this.unemploymentDuration.get(id) || 0;
+        this.unemploymentDuration.set(id, duration + this.updateInterval);
+
+        // Long-term unemployed citizens move away
+        if (duration >= this.maxUnemploymentDuration) {
+          citizensToRemove.push(id);
+          continue;
+        }
+      } else {
+        // Reset unemployment duration if employed
+        this.unemploymentDuration.delete(id);
+      }
+
+      // Citizens with very low satisfaction may move away
+      if (citizen.satisfaction < this.lowSatisfactionThreshold) {
+        // 10% chance per update cycle
+        if (Math.random() < 0.1) {
+          citizensToRemove.push(id);
+        }
+      }
+    }
+
+    // Remove emigrating citizens
+    for (const id of citizensToRemove) {
+      this.removeCitizen(id);
+      this.unemploymentDuration.delete(id);
+    }
+
+    // Update building populations after emigration
+    this.updateBuildingPopulations();
+  }
+
+  /**
+   * Update building populations based on actual citizen count
+   */
+  private updateBuildingPopulations(): void {
+    const residentialBuildings = this.getResidentialBuildings();
+
+    for (const cell of residentialBuildings) {
+      const location = { x: cell.x, y: cell.y };
+
+      // Count citizens living at this location
+      const residentsHere = Array.from(this.citizens.values()).filter(
+        (c) => c.homeLocation?.x === location.x && c.homeLocation?.y === location.y
+      );
+
+      // Update cell population to reflect actual residents
+      cell.population = residentsHere.length;
     }
   }
 
@@ -214,6 +282,7 @@ export class CitizenManager {
    */
   private removeCitizen(id: string): void {
     this.citizens.delete(id);
+    this.unemploymentDuration.delete(id);
   }
 
   /**
