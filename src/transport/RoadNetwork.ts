@@ -11,6 +11,7 @@ export class RoadNetwork {
   private nodes: Map<string, RoadNode>;
   private edges: Map<string, RoadEdge>;
   private grid: Grid;
+  private largestComponent: Set<string> = new Set(); // Largest connected component
 
   constructor(grid: Grid) {
     this.grid = grid;
@@ -62,6 +63,71 @@ export class RoadNetwork {
         console.warn(`  Isolated nodes:`, isolatedNodes.map(n => n.id).join(', '));
       }
     }
+
+    // Find connected components
+    this.findConnectedComponents();
+  }
+
+  /**
+   * Find connected components using DFS and identify the largest one
+   */
+  private findConnectedComponents(): void {
+    const visited = new Set<string>();
+    const components: string[][] = [];
+
+    // DFS to find all nodes in a component
+    const dfs = (nodeId: string, component: string[]) => {
+      visited.add(nodeId);
+      component.push(nodeId);
+
+      const node = this.nodes.get(nodeId);
+      if (!node) return;
+
+      for (const neighborId of node.connections) {
+        if (!visited.has(neighborId)) {
+          dfs(neighborId, component);
+        }
+      }
+    };
+
+    // Find all connected components
+    for (const nodeId of this.nodes.keys()) {
+      if (!visited.has(nodeId)) {
+        const component: string[] = [];
+        dfs(nodeId, component);
+        components.push(component);
+      }
+    }
+
+    // Find the largest component
+    let largest: string[] = [];
+    for (const component of components) {
+      if (component.length > largest.length) {
+        largest = component;
+      }
+    }
+
+    this.largestComponent = new Set(largest);
+
+    console.log(`[Road Network] Found ${components.length} connected component(s)`);
+    if (components.length > 1) {
+      console.log(`  Component sizes:`, components.map(c => c.length).join(', '));
+      console.warn(`  Warning: Network is fragmented! Using largest component (${largest.length} nodes) for vehicle spawning`);
+    } else {
+      console.log(`  All ${this.nodes.size} nodes are connected ✓`);
+    }
+  }
+
+  /**
+   * Get nodes from the largest connected component
+   */
+  getConnectedNodes(): RoadNode[] {
+    if (this.largestComponent.size === 0) {
+      return this.getAllNodes();
+    }
+    return Array.from(this.largestComponent)
+      .map(id => this.nodes.get(id))
+      .filter((n): n is RoadNode => n !== undefined);
   }
 
   /**

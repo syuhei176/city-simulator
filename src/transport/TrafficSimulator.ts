@@ -86,10 +86,11 @@ export class TrafficSimulator {
    * Spawn a vehicle at random locations
    */
   private spawnRandomVehicle(): void {
-    const nodes = this.network.getAllNodes();
+    // Use only connected nodes to ensure path exists
+    const nodes = this.network.getConnectedNodes();
     if (nodes.length < 2) {
       // Log every time to understand the issue
-      console.log(`[Vehicle Spawn] Cannot spawn: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
+      console.log(`[Vehicle Spawn] Cannot spawn: insufficient connected road nodes (${nodes.length} nodes, need at least 2)`);
       return;
     }
 
@@ -107,8 +108,8 @@ export class TrafficSimulator {
     }
 
     // Log first few spawn attempts with full details
-    if (this.spawnAttempts <= 3) {
-      console.log(`[Vehicle Spawn] Attempt #${this.spawnAttempts}: ${startNode.id} -> ${endNode.id}`);
+    if (this.spawnAttempts <= 5) {
+      console.log(`[Vehicle Spawn] Attempt #${this.spawnAttempts}: ${startNode.id} -> ${endNode.id} (from ${nodes.length} connected nodes)`);
       console.log(`  Start node connections (${startNode.connections.length}):`, startNode.connections.join(', '));
       console.log(`  End node connections (${endNode.connections.length}):`, endNode.connections.join(', '));
     }
