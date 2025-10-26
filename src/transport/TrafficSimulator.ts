@@ -102,12 +102,17 @@ export class TrafficSimulator {
     );
 
     vehicle.setPath(path);
+
+    // Set initial speed to a reasonable value (50-70% of max speed)
+    const initialSpeedRatio = 0.5 + Math.random() * 0.2; // 50-70%
+    vehicle.speed = vehicle.maxSpeed * initialSpeedRatio;
+
     this.vehicles.set(vehicle.id, vehicle);
     this.totalVehiclesSpawned++;
 
     // Log first few vehicle spawns
     if (this.totalVehiclesSpawned <= 3) {
-      console.log(`Vehicle spawned: ${vehicle.id} (total: ${this.totalVehiclesSpawned})`);
+      console.log(`Vehicle spawned: ${vehicle.id} at speed ${vehicle.speed.toFixed(2)} (total: ${this.totalVehiclesSpawned})`);
     }
   }
 
@@ -148,11 +153,11 @@ export class TrafficSimulator {
         // Heavy traffic - slow down
         vehicle.decelerate(0.03);
       } else if (trafficDensity > 50) {
-        // Moderate traffic - maintain speed
-        vehicle.decelerate(0.01);
+        // Moderate traffic - maintain speed slightly slower
+        vehicle.decelerate(0.005);
       } else {
-        // Light traffic - speed up
-        vehicle.accelerate(0.02);
+        // Light traffic - speed up more aggressively
+        vehicle.accelerate(0.05);
       }
     }
   }
