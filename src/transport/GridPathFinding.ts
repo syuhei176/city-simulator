@@ -59,10 +59,12 @@ export class GridPathFinding {
 
       // Initialize
       gScore.set(startId, 0);
+      console.log(`[GridPathFinding] Set gScore[${startId}] = 0`);
       const h = this.heuristic(start, end);
       console.log(`[GridPathFinding] Heuristic calculated: ${h}`);
       fScore.set(startId, h);
       openSet.enqueue(startId, h);
+      console.log(`[GridPathFinding] Enqueued startId: ${startId} with priority: ${h}`);
 
       let iterations = 0;
       const maxIterations = 50000; // Increased for grid-based search
@@ -85,6 +87,9 @@ export class GridPathFinding {
 
       if (iterations === 1) {
         console.log(`[GridPathFinding] Dequeued: ${currentId}`);
+        console.log(`[GridPathFinding] gScore for currentId: ${gScore.get(currentId)}`);
+        console.log(`[GridPathFinding] gScore has currentId: ${gScore.has(currentId)}`);
+        console.log(`[GridPathFinding] All gScore keys:`, Array.from(gScore.keys()));
       }
 
       const current = this.idToPosition(currentId);
