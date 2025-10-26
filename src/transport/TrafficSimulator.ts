@@ -14,7 +14,7 @@ export class TrafficSimulator {
   private nextVehicleId: number = 0;
 
   // Simulation parameters
-  private spawnRate: number = 0.02; // Probability of spawning vehicle per tick
+  private spawnRate: number = 0.3; // Probability of spawning vehicle per tick
   private maxVehicles: number = 100;
   private cellSize: number;
 

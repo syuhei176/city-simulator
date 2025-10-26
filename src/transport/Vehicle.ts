@@ -59,13 +59,13 @@ export class Vehicle {
     // Set max speed based on vehicle type
     switch (type) {
       case VehicleType.CAR:
-        this.maxSpeed = 0.5;
+        this.maxSpeed = 2.0;
         break;
       case VehicleType.BUS:
-        this.maxSpeed = 0.3;
+        this.maxSpeed = 1.5;
         break;
       case VehicleType.TRUCK:
-        this.maxSpeed = 0.25;
+        this.maxSpeed = 1.2;
         break;
     }
   }
