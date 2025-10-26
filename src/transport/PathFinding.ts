@@ -47,7 +47,6 @@ export class PathFinding {
     const endNode = this.network.getNode(endId);
 
     if (!startNode || !endNode) {
-      console.log(`[PathFinding] Failed: start or end node not found (${startId} -> ${endId})`);
       return {
         nodes: [],
         totalCost: Infinity,
@@ -58,7 +57,6 @@ export class PathFinding {
 
     // Check if start node has any connections
     if (startNode.connections.length === 0) {
-      console.log(`[PathFinding] Failed: start node ${startId} has no connections`);
       return {
         nodes: [],
         totalCost: Infinity,
@@ -83,7 +81,6 @@ export class PathFinding {
     while (!openSet.isEmpty()) {
       iterations++;
       if (iterations > maxIterations) {
-        console.log(`[PathFinding] Failed: exceeded max iterations (${maxIterations})`);
         break;
       }
 
@@ -91,23 +88,15 @@ export class PathFinding {
 
       // Reached destination
       if (current === endId) {
-        console.log(`[PathFinding] Success: found path from ${startId} to ${endId} in ${iterations} iterations`);
         return this.reconstructPath(cameFrom, current);
       }
 
       // Explore neighbors
       const neighbors = this.network.getNeighbors(current);
 
-      if (iterations === 1) {
-        console.log(`[PathFinding] Start node ${startId} has ${neighbors.length} neighbors:`, neighbors.map(n => n.id).join(', '));
-      }
-
       for (const neighbor of neighbors) {
         const edge = this.network.getEdgeBetween(current, neighbor.id);
         if (!edge) {
-          if (iterations <= 5) {
-            console.log(`[PathFinding] No edge found between ${current} and ${neighbor.id}`);
-          }
           continue;
         }
 

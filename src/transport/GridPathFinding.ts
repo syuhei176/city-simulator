@@ -15,8 +15,13 @@ export class GridPathFinding {
   private readonly ROAD_COST = 1.0;        // Fast movement on roads
   private readonly WALKING_COST = 5.0;      // Slow walking on non-roads
 
+  // Path cache to avoid recalculating same paths
+  private pathCache: Map<string, Path>;
+  private readonly MAX_CACHE_SIZE = 1000;
+
   constructor(grid: Grid) {
     this.grid = grid;
+    this.pathCache = new Map();
   }
 
   /**
@@ -36,7 +41,27 @@ export class GridPathFinding {
       };
     }
 
-    return this.aStar(start, end);
+    // Check cache first
+    const cacheKey = this.getCacheKey(start, end);
+    const cachedPath = this.pathCache.get(cacheKey);
+    if (cachedPath) {
+      return cachedPath;
+    }
+
+    // Calculate new path
+    const path = this.aStar(start, end);
+
+    // Store in cache (with size limit)
+    if (this.pathCache.size >= this.MAX_CACHE_SIZE) {
+      // Remove oldest entry (first entry in map)
+      const firstKey = this.pathCache.keys().next().value;
+      if (firstKey) {
+        this.pathCache.delete(firstKey);
+      }
+    }
+    this.pathCache.set(cacheKey, path);
+
+    return path;
   }
 
   /**
@@ -59,7 +84,7 @@ export class GridPathFinding {
       openSet.enqueue(startId, h);
 
       let iterations = 0;
-      const maxIterations = 50000; // Increased for grid-based search
+      const maxIterations = 10000; // Reduced to improve performance
 
     while (!openSet.isEmpty()) {
       iterations++;
@@ -255,5 +280,29 @@ export class GridPathFinding {
    */
   getCell(pos: Position): Cell | null {
     return this.grid.getCell(pos.x, pos.y);
+  }
+
+  /**
+   * Generate cache key from start and end positions
+   */
+  private getCacheKey(start: Position, end: Position): string {
+    return `${start.x},${start.y}->${end.x},${end.y}`;
+  }
+
+  /**
+   * Clear the path cache (useful when road network changes)
+   */
+  clearCache(): void {
+    this.pathCache.clear();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number; maxSize: number } {
+    return {
+      size: this.pathCache.size,
+      maxSize: this.MAX_CACHE_SIZE,
+    };
   }
 }
