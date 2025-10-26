@@ -43,8 +43,24 @@ export class RoadNetwork {
     );
 
     // Log first few nodes for debugging
-    if (this.nodes.size > 0 && this.nodes.size <= 5) {
+    if (this.nodes.size > 0 && this.nodes.size <= 10) {
       console.log(`[Road Network] Node IDs:`, Array.from(this.nodes.keys()));
+
+      // Show connections for first few nodes
+      const nodeArray = Array.from(this.nodes.values());
+      for (let i = 0; i < Math.min(5, nodeArray.length); i++) {
+        const node = nodeArray[i];
+        console.log(`  Node ${node.id}: ${node.connections.length} connections ->`, node.connections.join(', '));
+      }
+    }
+
+    // Check for isolated nodes (nodes with no connections)
+    const isolatedNodes = Array.from(this.nodes.values()).filter(n => n.connections.length === 0);
+    if (isolatedNodes.length > 0) {
+      console.warn(`[Road Network] Warning: ${isolatedNodes.length} isolated nodes (no connections)`);
+      if (isolatedNodes.length <= 5) {
+        console.warn(`  Isolated nodes:`, isolatedNodes.map(n => n.id).join(', '));
+      }
     }
   }
 
@@ -101,42 +117,68 @@ export class RoadNetwork {
     fromCell: Cell,
     toX: number,
     toY: number,
-    _direction: string
+    direction: string
   ): void {
     const fromId = this.getCellNodeId(fromCell.x, fromCell.y);
     const toId = this.getCellNodeId(toX, toY);
 
-    // Avoid duplicate edges
-    const edgeId = `${fromId}-${toId}`;
-    if (this.edges.has(edgeId)) return;
-
     const toCell = this.grid.getCell(toX, toY);
-    if (!toCell || !toCell.isRoad()) return;
+    if (!toCell || !toCell.isRoad()) {
+      console.log(`[Edge Creation] Failed: toCell at (${toX},${toY}) is not a road`);
+      return;
+    }
+
+    // Create edge ID - use sorted IDs to avoid duplicates for bidirectional edges
+    const edgeId1 = `${fromId}-${toId}`;
+    const edgeId2 = `${toId}-${fromId}`;
+
+    // Check if edge already exists in either direction
+    if (this.edges.has(edgeId1) || this.edges.has(edgeId2)) {
+      return;
+    }
 
     const lanes = this.getLanesForRoadType(fromCell.roadType);
     const speedLimit = this.getSpeedLimitForRoadType(fromCell.roadType);
     const cost = this.calculateEdgeCost(fromCell, toCell);
 
-    const edge: RoadEdge = {
-      id: edgeId,
+    // Create edge in both directions for bidirectional roads
+    const edge1: RoadEdge = {
+      id: edgeId1,
       from: fromId,
       to: toId,
       cost,
       lanes,
       speedLimit,
-      bidirectional: true, // Most roads are bidirectional
+      bidirectional: true,
     };
 
-    this.edges.set(edgeId, edge);
+    const edge2: RoadEdge = {
+      id: edgeId2,
+      from: toId,
+      to: fromId,
+      cost,
+      lanes,
+      speedLimit,
+      bidirectional: true,
+    };
 
-    // Update node connections
+    this.edges.set(edgeId1, edge1);
+    this.edges.set(edgeId2, edge2);
+
+    // Update node connections (bidirectional)
     const fromNode = this.nodes.get(fromId);
     const toNode = this.nodes.get(toId);
+
     if (fromNode && !fromNode.connections.includes(toId)) {
       fromNode.connections.push(toId);
     }
     if (toNode && !toNode.connections.includes(fromId)) {
       toNode.connections.push(fromId);
+    }
+
+    // Log first few edge creations
+    if (this.edges.size <= 10) {
+      console.log(`[Edge Created] ${fromId} <-> ${toId} (${direction})`);
     }
   }
 
