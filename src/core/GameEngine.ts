@@ -112,6 +112,15 @@ export class GameEngine {
     // Initialize analytics systems
     this.historicalDataCollector = new HistoricalDataCollector(200, 10);
 
+    // Apply default grid city template to start with roads
+    const { MapTemplates } = require('@/systems/MapTemplates');
+    const templates = MapTemplates.getAllTemplates();
+    const gridTemplate = templates.find((t: any) => t.name === 'グリッド都市');
+    if (gridTemplate) {
+      gridTemplate.apply(this.grid);
+      console.log('Applied default grid city template');
+    }
+
     // Build initial road network
     this.roadNetwork.buildFromGrid();
     console.log('Initial road network built');
