@@ -9,6 +9,7 @@ import { InputHandler } from './ui/InputHandler';
 import { HUD } from './ui/HUD';
 import { StatsPanel } from './ui/StatsPanel';
 import { SaveLoadPanel } from './ui/SaveLoadPanel';
+import { DebugLogPanel } from './ui/DebugLogPanel';
 import { SaveLoadManager } from './systems/SaveLoadManager';
 import { MapTemplates } from './systems/MapTemplates';
 import { PerformanceOptimizer } from './systems/PerformanceOptimizer';
@@ -29,6 +30,7 @@ class CitySimulator {
   private hud!: HUD;
   private statsPanel!: StatsPanel;
   private saveLoadPanel!: SaveLoadPanel;
+  private debugLogPanel!: DebugLogPanel;
   private autoSaveInterval: number = 0;
 
   private readonly config: GameConfig = {
@@ -123,6 +125,9 @@ class CitySimulator {
 
     // Create Save/Load Panel
     this.saveLoadPanel = new SaveLoadPanel(hudContainer, this.engine);
+
+    // Create Debug Log Panel
+    this.debugLogPanel = new DebugLogPanel(hudContainer);
 
     // Setup autosave (every 5 minutes)
     this.autoSaveInterval = window.setInterval(() => {
@@ -266,6 +271,15 @@ class CitySimulator {
           // Toggle save/load panel
           this.saveLoadPanel.toggle();
           console.log('Save/Load panel toggled');
+          break;
+        case 'd':
+        case 'D':
+          // Toggle debug log panel (Shift+D to avoid conflict with bulldoze tool)
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.debugLogPanel.toggle();
+            console.log('Debug log panel toggled');
+          }
           break;
         case 'p':
         case 'P':
