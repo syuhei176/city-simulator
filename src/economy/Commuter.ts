@@ -78,8 +78,11 @@ export class Commuter {
       return true;
     }
 
-    // Progress along the path (simplified - move one node per tick)
-    this.currentPathIndex++;
+    // Progress along the path
+    // Move faster through path based on total cost
+    // Higher cost = slower progress (more ticks needed)
+    const progressRate = Math.max(1, this.path.nodes.length / Math.max(1, this.path.totalCost));
+    this.currentPathIndex += progressRate;
 
     // Check if reached destination
     if (this.currentPathIndex >= this.path.nodes.length) {
