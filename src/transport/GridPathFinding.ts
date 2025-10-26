@@ -43,6 +43,8 @@ export class GridPathFinding {
    * A* algorithm implementation on grid
    */
   private aStar(start: Position, end: Position): Path {
+    console.log(`[GridPathFinding] Finding path from (${start.x},${start.y}) to (${end.x},${end.y})`);
+
     const openSet = new PriorityQueue<string>();
     const cameFrom = new Map<string, string>();
     const gScore = new Map<string, number>();
@@ -71,7 +73,13 @@ export class GridPathFinding {
 
       // Reached destination
       if (currentId === endId) {
+        console.log(`[GridPathFinding] Success! Path found in ${iterations} iterations, cost: ${gScore.get(currentId)?.toFixed(2)}`);
         return this.reconstructPath(cameFrom, currentId, gScore.get(currentId) || 0);
+      }
+
+      // Log progress every 5000 iterations
+      if (iterations % 5000 === 0) {
+        console.log(`[GridPathFinding] Still searching... ${iterations} iterations`);
       }
 
       // Explore neighbors (4-directional: up, down, left, right)
@@ -101,6 +109,7 @@ export class GridPathFinding {
     }
 
     // No path found
+    console.warn(`[GridPathFinding] No path found after ${iterations} iterations`);
     return {
       nodes: [],
       totalCost: Infinity,
