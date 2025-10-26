@@ -23,6 +23,10 @@ export interface HistoricalData {
   industrialDemand: DataPoint[];
   transitRidership: DataPoint[];
   transitCoverage: DataPoint[];
+  totalCommuters: DataPoint[];
+  activeCommuters: DataPoint[];
+  failedCommuters: DataPoint[];
+  averageCommuteTime: DataPoint[];
 }
 
 export class HistoricalDataCollector {
@@ -51,6 +55,10 @@ export class HistoricalDataCollector {
       industrialDemand: [],
       transitRidership: [],
       transitCoverage: [],
+      totalCommuters: [],
+      activeCommuters: [],
+      failedCommuters: [],
+      averageCommuteTime: [],
     };
   }
 
@@ -84,6 +92,10 @@ export class HistoricalDataCollector {
     this.addDataPoint(this.data.industrialDemand, time, stats.industrialDemand);
     this.addDataPoint(this.data.transitRidership, time, stats.transitRidership);
     this.addDataPoint(this.data.transitCoverage, time, stats.transitCoverage);
+    this.addDataPoint(this.data.totalCommuters, time, stats.totalCommuters || 0);
+    this.addDataPoint(this.data.activeCommuters, time, stats.activeCommuters || 0);
+    this.addDataPoint(this.data.failedCommuters, time, stats.failedCommuters || 0);
+    this.addDataPoint(this.data.averageCommuteTime, time, stats.averageCommuteTime || 0);
   }
 
   /**

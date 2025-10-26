@@ -9,15 +9,18 @@ import {
   BUILDING_PROPERTIES,
   DemandFactors,
 } from './types';
+import { CitizenManager } from '@/economy/CitizenManager';
 
 /**
  * Manages building growth and development
  */
 export class BuildingManager {
   private grid: Grid;
+  private citizenManager: CitizenManager | null = null;
   private growthCheckInterval: number = 30; // Check every 30 ticks
   private ticksSinceLastCheck: number = 0;
   private growthChance: number = 0.1; // 10% chance per check if conditions met
+  private abandonmentChance: number = 0.15; // 15% chance per check if understaffed
 
   // Current demand levels
   private demand: DemandFactors = {
@@ -35,8 +38,20 @@ export class BuildingManager {
     waterAvailable: 1000, // TODO: Connect to water system
   };
 
+  // Track understaffing duration for abandonment
+  private understaffedBuildings: Map<string, number> = new Map();
+  private minUnderstaffingDuration: number = 60; // 60 ticks before abandonment risk
+  private minWorkerRatio: number = 0.5; // Buildings need at least 50% of required workers
+
   constructor(grid: Grid) {
     this.grid = grid;
+  }
+
+  /**
+   * Set citizen manager (needed for abandonment checks)
+   */
+  setCitizenManager(citizenManager: CitizenManager): void {
+    this.citizenManager = citizenManager;
   }
 
   /**
@@ -49,6 +64,7 @@ export class BuildingManager {
       this.ticksSinceLastCheck = 0;
       this.updateCityStats();
       this.processGrowth();
+      this.processAbandonment();
     }
   }
 
@@ -222,12 +238,77 @@ export class BuildingManager {
   }
 
   /**
+   * Process building abandonment due to lack of workers
+   */
+  private processAbandonment(): void {
+    if (!this.citizenManager) return;
+
+    const cells = this.grid.getAllCells();
+    const workplaces = cells.filter(
+      (c) => (c.zoneType === ZoneType.COMMERCIAL || c.zoneType === ZoneType.INDUSTRIAL) && c.buildingLevel > 0
+    );
+
+    const citizens = this.citizenManager.getCitizens();
+
+    for (const cell of workplaces) {
+      const cellKey = `${cell.x},${cell.y}`;
+      const props = this.getBuildingProperties(cell.zoneType, cell.buildingLevel);
+      const requiredWorkers = props.jobs;
+
+      // Count actual workers at this location
+      const actualWorkers = citizens.filter(
+        (c) => c.workLocation?.x === cell.x && c.workLocation?.y === cell.y
+      ).length;
+
+      const workerRatio = requiredWorkers > 0 ? actualWorkers / requiredWorkers : 1;
+
+      // Check if understaffed
+      if (workerRatio < this.minWorkerRatio) {
+        const duration = this.understaffedBuildings.get(cellKey) || 0;
+        this.understaffedBuildings.set(cellKey, duration + this.growthCheckInterval);
+
+        // If understaffed for long enough, risk of abandonment
+        if (duration >= this.minUnderstaffingDuration && Math.random() < this.abandonmentChance) {
+          this.abandonBuilding(cell);
+          this.understaffedBuildings.delete(cellKey);
+        }
+      } else {
+        // Building is adequately staffed, reset counter
+        this.understaffedBuildings.delete(cellKey);
+      }
+    }
+  }
+
+  /**
+   * Abandon a building (reduce level or demolish)
+   */
+  private abandonBuilding(cell: Cell): void {
+    if (cell.buildingLevel > BuildingStage.EMPTY) {
+      cell.buildingLevel--;
+
+      // Update cell properties
+      const props = this.getBuildingProperties(cell.zoneType, cell.buildingLevel);
+      cell.population = props.population;
+
+      console.log(
+        `Building abandoned at (${cell.x}, ${cell.y}) - ${cell.zoneType}, new level: ${cell.buildingLevel}`
+      );
+
+      // If building is now empty, it becomes a zoned empty lot
+      if (cell.buildingLevel === BuildingStage.EMPTY) {
+        cell.population = 0;
+      }
+    }
+  }
+
+  /**
    * Get city statistics
    */
   getStats() {
     return {
       ...this.cityStats,
       demand: this.getDemand(),
+      understaffedBuildings: this.understaffedBuildings.size,
     };
   }
 }
