@@ -73,7 +73,7 @@ export class GridPathFinding {
       iterations++;
 
       if (iterations === 1) {
-        console.log(`[GridPathFinding] First iteration started`);
+        console.log(`[GridPathFinding] First iteration started, about to dequeue`);
       }
 
       if (iterations > maxIterations) {
@@ -82,7 +82,17 @@ export class GridPathFinding {
       }
 
       const currentId = openSet.dequeue()!;
+
+      if (iterations === 1) {
+        console.log(`[GridPathFinding] Dequeued: ${currentId}`);
+      }
+
       const current = this.idToPosition(currentId);
+
+      if (iterations === 1) {
+        console.log(`[GridPathFinding] Converted to position: (${current.x},${current.y})`);
+        console.log(`[GridPathFinding] Checking if reached destination - current: ${currentId}, end: ${endId}, equal: ${currentId === endId}`);
+      }
 
       // Reached destination
       if (currentId === endId) {
@@ -98,9 +108,17 @@ export class GridPathFinding {
       // Explore neighbors (4-directional: up, down, left, right)
       const neighbors = this.getNeighbors(current);
 
+      if (iterations === 1) {
+        console.log(`[GridPathFinding] First iteration - found ${neighbors.length} neighbors`);
+      }
+
       for (const neighbor of neighbors) {
         const neighborId = this.positionToId(neighbor);
         const movementCost = this.getMovementCost(current, neighbor);
+
+        if (iterations === 1 && neighbor === neighbors[0]) {
+          console.log(`[GridPathFinding] First neighbor - id: ${neighborId}, movementCost: ${movementCost}`);
+        }
 
         if (movementCost === Infinity) {
           continue; // Impassable
@@ -118,6 +136,14 @@ export class GridPathFinding {
 
           openSet.enqueue(neighborId, f);
         }
+      }
+
+      if (iterations === 1) {
+        console.log(`[GridPathFinding] First iteration complete. OpenSet size: ${openSet.size()}`);
+      }
+
+      if (iterations === 2) {
+        console.log(`[GridPathFinding] Second iteration started`);
       }
     }
 
