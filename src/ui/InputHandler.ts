@@ -372,6 +372,8 @@ export class InputHandler {
           );
           if (stop) {
             console.log(`Bus stop placed at (${cell.x}, ${cell.y})`);
+            // Auto-create or update bus route
+            this.transitManager.autoCreateBusRoute();
           } else {
             console.log(`Cannot place bus stop at (${cell.x}, ${cell.y}) - must be on a road`);
           }

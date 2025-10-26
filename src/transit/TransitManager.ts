@@ -344,4 +344,185 @@ export class TransitManager {
   resetMonthlyStats(): void {
     this.totalRidership = 0;
   }
+
+  /**
+   * Auto-create route when bus stops are placed
+   * Creates or updates a default bus route connecting all bus stops
+   */
+  autoCreateBusRoute(): void {
+    // Get all bus stops
+    const busStops = Array.from(this.stops.values())
+      .filter(stop => stop.type === TransitType.BUS);
+
+    // Need at least 2 stops to create a route
+    if (busStops.length < 2) {
+      console.log('Not enough bus stops for a route (need at least 2)');
+      return;
+    }
+
+    // Check if default route already exists
+    let defaultRoute = Array.from(this.routes.values())
+      .find(route => route.name === 'バスルート1');
+
+    const stopIds = busStops.map(stop => stop.id);
+
+    if (defaultRoute) {
+      // Update existing route
+      defaultRoute.stops = stopIds;
+      console.log(`Updated bus route with ${stopIds.length} stops`);
+
+      // Remove old vehicles and spawn new one
+      for (const [vehicleId, vehicle] of this.vehicles) {
+        if (vehicle.routeId === defaultRoute.id) {
+          this.vehicles.delete(vehicleId);
+        }
+      }
+      this.spawnVehicle(defaultRoute.id);
+    } else {
+      // Create new route
+      this.createRoute(
+        'バスルート1',
+        TransitType.BUS,
+        stopIds,
+        '#ff6b00',
+        10,
+        true
+      );
+    }
+  }
+
+  /**
+   * Get transit stop data for serialization
+   */
+  getStopsData(): Array<{
+    id: string;
+    position: Position;
+    type: TransitType;
+    name: string;
+    passengers: number;
+  }> {
+    return Array.from(this.stops.values()).map(stop => ({
+      id: stop.id,
+      position: { ...stop.position },
+      type: stop.type,
+      name: stop.name,
+      passengers: stop.passengers,
+    }));
+  }
+
+  /**
+   * Get routes data for serialization
+   */
+  getRoutesData(): Array<{
+    id: string;
+    name: string;
+    type: TransitType;
+    stops: string[];
+    color: string;
+    frequency: number;
+    isLoop: boolean;
+  }> {
+    return Array.from(this.routes.values()).map(route => ({
+      id: route.id,
+      name: route.name,
+      type: route.type,
+      stops: [...route.stops],
+      color: route.color,
+      frequency: route.frequency,
+      isLoop: route.isLoop,
+    }));
+  }
+
+  /**
+   * Get vehicles data for serialization
+   */
+  getVehiclesData(): Array<{
+    id: string;
+    routeId: string;
+    type: TransitType;
+    currentStopIndex: number;
+    nextStopIndex: number;
+    position: Position;
+    passengers: number;
+    capacity: number;
+    speed: number;
+    progress: number;
+  }> {
+    return Array.from(this.vehicles.values()).map(vehicle => ({
+      id: vehicle.id,
+      routeId: vehicle.routeId,
+      type: vehicle.type,
+      currentStopIndex: vehicle.currentStopIndex,
+      nextStopIndex: vehicle.nextStopIndex,
+      position: { ...vehicle.position },
+      passengers: vehicle.passengers,
+      capacity: vehicle.capacity,
+      speed: vehicle.speed,
+      progress: vehicle.progress,
+    }));
+  }
+
+  /**
+   * Load transit data from serialized format
+   */
+  loadData(data: {
+    stops: Array<any>;
+    routes: Array<any>;
+    vehicles: Array<any>;
+    nextStopId: number;
+    nextRouteId: number;
+    nextVehicleId: number;
+  }): void {
+    // Clear existing data
+    this.stops.clear();
+    this.routes.clear();
+    this.vehicles.clear();
+
+    // Restore stops
+    for (const stopData of data.stops) {
+      this.stops.set(stopData.id, {
+        id: stopData.id,
+        position: { ...stopData.position },
+        type: stopData.type,
+        name: stopData.name,
+        passengers: stopData.passengers,
+      });
+    }
+
+    // Restore routes
+    for (const routeData of data.routes) {
+      this.routes.set(routeData.id, {
+        id: routeData.id,
+        name: routeData.name,
+        type: routeData.type,
+        stops: [...routeData.stops],
+        color: routeData.color,
+        frequency: routeData.frequency,
+        isLoop: routeData.isLoop,
+      });
+    }
+
+    // Restore vehicles
+    for (const vehicleData of data.vehicles) {
+      this.vehicles.set(vehicleData.id, {
+        id: vehicleData.id,
+        routeId: vehicleData.routeId,
+        type: vehicleData.type,
+        currentStopIndex: vehicleData.currentStopIndex,
+        nextStopIndex: vehicleData.nextStopIndex,
+        position: { ...vehicleData.position },
+        passengers: vehicleData.passengers,
+        capacity: vehicleData.capacity,
+        speed: vehicleData.speed,
+        progress: vehicleData.progress,
+      });
+    }
+
+    // Restore ID counters
+    this.nextStopId = data.nextStopId;
+    this.nextRouteId = data.nextRouteId;
+    this.nextVehicleId = data.nextVehicleId;
+
+    console.log(`Transit data loaded: ${this.stops.size} stops, ${this.routes.size} routes, ${this.vehicles.size} vehicles`);
+  }
 }
