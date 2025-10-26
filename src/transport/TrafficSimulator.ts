@@ -14,8 +14,8 @@ export class TrafficSimulator {
   private nextVehicleId: number = 0;
 
   // Simulation parameters
-  private spawnRate: number = 0.02; // Probability of spawning vehicle per tick
-  private maxVehicles: number = 100;
+  private spawnRate: number = 0.3; // Probability of spawning vehicle per tick
+  private maxVehicles: number = 200;
   private cellSize: number;
 
   // Statistics
@@ -77,7 +77,7 @@ export class TrafficSimulator {
     if (nodes.length < 2) {
       // Only log once to avoid spam
       if (this.totalVehiclesSpawned === 0 && this.vehicles.size === 0) {
-        console.log(`Cannot spawn vehicles: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
+        console.log(`[TrafficSimulator] Cannot spawn vehicles: insufficient road nodes (${nodes.length} nodes, need at least 2)`);
       }
       return;
     }
@@ -90,7 +90,13 @@ export class TrafficSimulator {
 
     // Find path
     const path = this.pathFinding.findPathBetweenNodes(startNode.id, endNode.id);
-    if (!path.exists) return;
+    if (!path.exists) {
+      // Log path finding failures periodically
+      if (this.totalVehiclesSpawned < 5 && Math.random() < 0.1) {
+        console.log(`[TrafficSimulator] Path not found from ${startNode.id} to ${endNode.id}`);
+      }
+      return;
+    }
 
     // Create vehicle
     const vehicleType = this.getRandomVehicleType();
@@ -105,9 +111,9 @@ export class TrafficSimulator {
     this.vehicles.set(vehicle.id, vehicle);
     this.totalVehiclesSpawned++;
 
-    // Log first few vehicle spawns
-    if (this.totalVehiclesSpawned <= 3) {
-      console.log(`Vehicle spawned: ${vehicle.id} (total: ${this.totalVehiclesSpawned})`);
+    // Log first few vehicle spawns and periodically after that
+    if (this.totalVehiclesSpawned <= 5 || this.totalVehiclesSpawned % 20 === 0) {
+      console.log(`[TrafficSimulator] Vehicle spawned: ${vehicle.id} (total: ${this.totalVehiclesSpawned}, current: ${this.vehicles.size})`);
     }
   }
 
