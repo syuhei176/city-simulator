@@ -2,7 +2,7 @@
  * Tests for CommuteManager congestion system
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Commuter, CommuteState } from './Commuter';
 import { Path } from '@/transport/types';
 
